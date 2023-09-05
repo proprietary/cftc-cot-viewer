@@ -53,9 +53,10 @@ function TradersInFinancialFutures({ tffData, shouldZscore, commodityNameSelecte
       }
     ],
     grid: {
-      left: '3%',
-      right: '4%',
-      bottom: '3%',
+      left: '5%',
+      right: '5%',
+      bottom: '5%',
+      top: '5%',
       containLabel: true
     },
     xAxis: [
@@ -79,6 +80,7 @@ function TradersInFinancialFutures({ tffData, shouldZscore, commodityNameSelecte
   return (
     <ReactEChartsCore
       echarts={echarts}
+      showLoading={byContractName.length === 0}
       option={option}
       theme={'dark'}
       style={{ height: '1000px', width: '90vw' }} />
@@ -93,16 +95,22 @@ export default function Tff() {
     (async () => {
       const d = await fetchTffData();
       setTffData(d);
-      const ct = buildCommodityCategoryTree(d);
-      setCategoryTree(ct);
-      setCommoditySelected(ct[0][0]);
     })();
   }, []);
+  React.useEffect(() => {
+    if (tffData.length > 0) {
+      const ct = buildCommodityCategoryTree(tffData);
+      setCategoryTree(ct);
+      setCommoditySelected(ct[0][1][0]);
+    }
+  }, [tffData]);
   return (
     <>
       <main className="flex min-h-screen flex-col items-center justify-between p-10">
         <h2>Traders in Financial Futures</h2>
-        <select title="Futures Contract" className="text-slate-50 bg-slate-900 p-2 m-2 rounded-md" value={commoditySelected} onChange={(e: React.ChangeEvent<HTMLSelectElement>) => { setCommoditySelected(e.target.value); }}>
+        <select title="Futures Contract" className="text-slate-50 bg-slate-900 p-2 m-2 rounded-md"
+          value={commoditySelected}
+          onChange={(e: React.ChangeEvent<HTMLSelectElement>) => { setCommoditySelected(e.target.value); }}>
           {categoryTree.map(([commoditySubgroupName, commodityNames]: [string, string[]], idx: number) => (
             <optgroup key={idx} label={commoditySubgroupName}>
               {commodityNames.map((commodityName: string, jdx: number) => (
@@ -120,8 +128,13 @@ export default function Tff() {
 function buildCommodityCategoryTree(data: any): any {
   let tbl = new Map<string, string[]>();
   for (const entry of data) {
-    const commoditySubgroupName = entry['commodity_subgroup_name'];
+    let commoditySubgroupName = entry['commodity_subgroup_name'];
     const commodityName = entry['contract_market_name'];
+    // special handling for stock indices:
+    // divide them according to their more specific category labels
+    if (commoditySubgroupName === 'STOCK INDICES') {
+      commoditySubgroupName = entry['commodity'];
+    }
     let subgroups: string[] | undefined;
     if ((subgroups = tbl.get(commoditySubgroupName)) != null) {
       if (subgroups.findIndex((x: string) => x === commodityName) === -1) {
