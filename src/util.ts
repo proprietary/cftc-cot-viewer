@@ -1,0 +1,86 @@
+import { AssertionError } from "assert";
+
+export function std(arr: Array<number>, fromIdx: number | undefined, lookback: number | undefined): number {
+    if (fromIdx == null || fromIdx > arr.length || fromIdx < 0) {
+        fromIdx = arr.length - 1;
+    }
+    if (lookback == null || lookback > arr.length) {
+        lookback = arr.length;
+    }
+    const mean_ = mean(arr, fromIdx, lookback);
+    let variance = 0;
+    for (let idx = fromIdx; idx > 0 && idx > fromIdx - lookback; --idx) {
+        variance += Math.pow(arr[idx] - mean_, 2);
+    }
+    if (lookback > 0) {
+        variance /= lookback;
+    } else {
+        return 0.;
+    }
+    return Math.sqrt(variance);
+}
+
+function mean(arr: Array<number>, fromIdx: number | undefined, lookback: number | undefined): number {
+    if (fromIdx == null || fromIdx > arr.length || fromIdx < 0) {
+        fromIdx = arr.length - 1;
+    }
+    if (lookback == null || lookback > arr.length) {
+        lookback = arr.length;
+    } else if (lookback === 0) {
+        return 0.;
+    } else if (lookback === 1) {
+        return arr[0];
+    }
+    let sum = 0;
+    let count = 0;
+    for (let idx = fromIdx; idx > 0 && idx > fromIdx - lookback; --idx) {
+        sum += arr[idx];
+        count += 1;
+    }
+    if (count === 0) {
+        return 0.;
+    }
+    return sum / count;
+}
+
+export function rollingMean(arr: number[], lookback: number): number[] {
+    if (lookback < 0 || lookback > arr.length) {
+        lookback = arr.length;
+    }
+    return arr.map((n: number, idx: number, thisArr: number[]): number => {
+        return mean(thisArr, idx, lookback);
+    });
+}
+
+export function rollingStd(arr: number[], lookback: number): number[] {
+    if (lookback < 0 || lookback > arr.length) {
+        lookback = arr.length;
+    }
+    const rollingMean_ = rollingMean(arr, lookback);
+    return arr.map((n: number, idx: number, thisArr: number[]): number => {
+        let variance = 0;
+        let count = 0;
+        for (let jdx = idx; jdx > 0 && jdx > idx - lookback; --jdx) {
+            variance += Math.pow(n - rollingMean_[jdx], 2);
+            count += 1;
+        }
+        if (count === 0) {
+            return 0.;
+        }
+        return Math.sqrt(variance / count);
+    });
+}
+
+
+export function rollingZscore(arr: Array<number>, lookback: number | undefined): Array<number> {
+    if (lookback == null || lookback > arr.length) {
+        lookback = arr.length;
+    }
+    const rollingMean_ = rollingMean(arr, lookback);
+    const rollingStd_ = rollingStd(arr, lookback);
+    return arr.map((n: number, idx: number, thisArr: number[]): number => {
+        const a = n - rollingMean_[idx];
+        const b = rollingStd_[idx];
+        return b > 0 ? a/b : 0.;
+    });
+}
