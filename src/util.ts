@@ -84,3 +84,14 @@ export function rollingZscore(arr: Array<number>, lookback: number | undefined):
         return b > 0 ? a/b : 0.;
     });
 }
+
+export function iso8601StringWithNoTimezoneOffset(d: Date): string {
+    let s = d.toISOString();
+    let i = s.length - 1;
+    for (; i > 0; --i) {
+        if (s[i] === '.') {
+            break;
+        }
+    }
+    return s.substring(0, i + 3);
+}
