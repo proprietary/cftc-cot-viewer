@@ -93,5 +93,5 @@ export function iso8601StringWithNoTimezoneOffset(d: Date): string {
             break;
         }
     }
-    return s.substring(0, i + 3);
+    return s.substring(0, i + 4);
 }

@@ -1,4 +1,3 @@
-import { ClientRequest } from "http";
 import { iso8601StringWithNoTimezoneOffset } from "./util";
 
 export class CachingCFTCApi {
@@ -6,62 +5,94 @@ export class CachingCFTCApi {
 
     private db: IDBDatabase | null = null;
 
+    private dbHandle: Promise<IDBDatabase>;
+
     private socrataApi: SocrataApi;
 
     constructor() {
         this.socrataApi = new SocrataApi();
+        this.dbHandle = this.initIndexedDB();
     }
 
-    public init() {
-        // TODO
-        let dbReq: IDBOpenDBRequest = window.indexedDB.open("so_libhack_cot", 1);
+    private initIndexedDB(): Promise<IDBDatabase> {
         let that = this;
-        if (dbReq != null) {
-            dbReq.onsuccess = function (ev: Event) {
-                that.db = (ev.target as IDBOpenDBRequest).result;
-            };
-            dbReq.onerror = function (ev: Event) {
-                const req = ev.target as IDBOpenDBRequest;
-                console.error('Failed to open IndexedDB');
-                console.error(req.error);
-                throw req.error;
-            }
-            dbReq.onupgradeneeded = function (ev) {
-                // Create database
-
-                const db = (ev.target as IDBOpenDBRequest).result;
-                db.onerror = (ev) => {
-                    console.error(ev.target);
+        return new Promise((resolve, reject) => {
+            const dbReq = window.indexedDB.open("so_libhack_cot", 1);
+            if (dbReq != null) {
+                console.info("dbReq != null");
+                dbReq.onsuccess = function (ev: Event) {
+                    const db = (ev.target as IDBOpenDBRequest).result;
+                    that.db = db;
+                    that.dbHandle = Promise.resolve(db);
+                    resolve(db);
+                };
+                dbReq.onerror = function (ev: Event) {
+                    const req = ev.target as IDBOpenDBRequest;
+                    console.error('Failed to open IndexedDB');
+                    console.error(req.error);
+                    reject(req.error);
                 }
+                dbReq.onupgradeneeded = function (ev: Event) {
+                    // Create database
 
-                // create ObjectStore for main records; same type of JSON object returned from the primary endpoints
-                // For example: See `the structure here <https://dev.socrata.com/foundry/publicreporting.cftc.gov/gpe5-46if>`_.
-                const futuresReportsStore = db.createObjectStore("futuresReports", {
-                    keyPath: "id"
-                });
-                futuresReportsStore.createIndex("cftc_contract_market_code_idx", "cftc_contract_market_code", { unique: false });
-                futuresReportsStore.createIndex("timestamp_idx", "timestamp", { unique: false });
-                futuresReportsStore.createIndex("cftc_commodity_code_idx", "cftc_commodity_code", { unique: false });
+                    const db = (ev.target as IDBOpenDBRequest).result;
+                    db.onerror = (ev) => {
+                        console.error(ev.target);
+                        reject();
+                    }
 
-                const legacyFuturesReportsStore = db.createObjectStore("legacyFuturesReports", { keyPath: "id" });
-                legacyFuturesReportsStore.createIndex("timestamp_idx", "timestamp", { unique: false });
-                legacyFuturesReportsStore.createIndex("cftc_contract_market_code_idx", "cftc_contract_market_code", { unique: false });
-                legacyFuturesReportsStore.createIndex("timestamp_idx", "timestamp", { unique: false });
+                    // create ObjectStore for main records; same type of JSON object returned from the primary endpoints
+                    // For example: See `the structure here <https://dev.socrata.com/foundry/publicreporting.cftc.gov/gpe5-46if>`_.
 
-                // create ObjectStore for all the different available futures contracts
-                const contractTypesStore = db.createObjectStore("commodityContracts", { keyPath: "cftcContractMarketCode" });
-                contractTypesStore.createIndex("report_type_idx", "reportType", { unique: false });
-                contractTypesStore.createIndex("commodity_group_name_idx", "group", { unique: false });
-                contractTypesStore.createIndex("cftc_commodity_code_idx", "cftcCommodityCode", { unique: false });
+                    // Maintain 3 different `ObjectStore`s for each of the 3 types of CFTC reports:
+                    // - TFF (Traders in Financial Futures)
+                    // - Disaggregated Reports (Agriculture & Natural Resources)
+                    // - Legacy COT (traditional COT with only major trader categories being comms and non-comms)
+
+                    // TFF ObjectStore
+                    const tffStore = db.createObjectStore(that.objectStoreNameFor(CFTCReportType.FinancialFutures), { keyPath: "id" });
+                    tffStore.createIndex("cftc_contract_market_code_idx", "cftc_contract_market_code", { unique: false });
+                    tffStore.createIndex("timestamp_idx", "timestamp", { unique: false });
+
+                    // Disaggregated (Agriculture & Natural Resources) ObjectStore
+                    const disaggregatedStore = db.createObjectStore(that.objectStoreNameFor(CFTCReportType.Disaggregated), { keyPath: "id" });
+                    disaggregatedStore.createIndex("cftc_contract_market_code_idx", "cftc_contract_market_code", { unique: false });
+                    disaggregatedStore.createIndex("timestamp_idx", "timestamp", { unique: false });
+
+                    // Legacy ObjectStore
+                    const legacyFuturesReportsStore = db.createObjectStore(that.objectStoreNameFor(CFTCReportType.Legacy), { keyPath: "id" });
+                    legacyFuturesReportsStore.createIndex("cftc_contract_market_code_idx", "cftc_contract_market_code", { unique: false });
+                    legacyFuturesReportsStore.createIndex("timestamp_idx", "timestamp", { unique: false });
+
+                    // create ObjectStore for all the different available futures contracts
+                    const contractTypesStore = db.createObjectStore("commodityContracts", { keyPath: "cftcContractMarketCode" });
+                    // rather than making a new `ObjectStore` for each report type, each entry is a tagged struct with `reportType`:
+                    contractTypesStore.createIndex("report_type_idx", "reportType", { unique: false });
+                    contractTypesStore.createIndex("commodity_group_name_idx", "group", { unique: false });
+                    contractTypesStore.createIndex("cftc_commodity_code_idx", "cftcCommodityCode", { unique: false });
+                }
             }
+        });
+    }
+
+    private objectStoreNameFor(reportType: CFTCReportType): string {
+        switch (reportType) {
+            case CFTCReportType.Disaggregated:
+                return "disaggregatedReports";
+            case CFTCReportType.FinancialFutures:
+                return "tffReports";
+            case CFTCReportType.Legacy:
+                return "legacyFuturesReports";
+            default:
+                throw new Error();
         }
     }
 
     public async requestDateRange(request: DateRangeRequest): Promise<any[]> {
         const cached = await this.getCachedDateRange(request);
-        if (cached.length === 0) {
+        if (cached == null || cached.length === 0) {
             const newData = await this.socrataApi.fetchDateRange(request);
-            await this.storeFuturesRecords(newData);
+            await this.storeFuturesRecords(request.reportType, newData);
             return newData;
         } else {
             return cached;
@@ -70,7 +101,7 @@ export class CachingCFTCApi {
 
     public async requestCommodityContracts(request: ContractListRequest): Promise<CommodityContractKind[]> {
         const cached = await this.getCachedContracts(request);
-        if (cached.length === 0) {
+        if (cached == null || cached.length === 0) {
             const availableContracts = await this.socrataApi.fetchAvailableContracts(request);
             await this.storeContracts(availableContracts);
             return availableContracts;
@@ -79,16 +110,16 @@ export class CachingCFTCApi {
         }
     }
 
-    private getCachedDateRange(request: DateRangeRequest): Promise<any[]> {
-        if (this.db == null) {
-            return Promise.resolve([]);
-        }
-        const tx = this.db.transaction(["futuresReports"], "readonly");
-        const objectStore = tx.objectStore("futuresReports");
-        const cftcContractMarketCodeIndex = objectStore.index("cftc_contract_market_code_idx")
+    private async getCachedDateRange(request: DateRangeRequest): Promise<any[]> {
+        const db = await this.dbHandle;
         return new Promise((resolve, reject) => {
             let resultSet: Array<any> = [];
-            const req = cftcContractMarketCodeIndex.openCursor(request.contract.cftcContractMarketCode);
+            const objectStoreName = this.objectStoreNameFor(request.reportType);
+            const tx = db.transaction([objectStoreName], "readonly");
+            const req = tx
+                .objectStore(objectStoreName)
+                .index("cftc_contract_market_code_idx")
+                .openCursor();
             req.onerror = (ev) => {
                 const err = (ev.target as IDBRequest<IDBCursor>).error;
                 console.error(err);
@@ -97,7 +128,9 @@ export class CachingCFTCApi {
             req.onsuccess = (ev) => {
                 const cursor = (ev.target as IDBRequest<IDBCursorWithValue>).result;
                 if (cursor != null) {
-                    if (cursor.value['timestamp'] >= request.startDate.getTime() && cursor.value['timestamp'] <= request.endDate.getTime()) {
+                    if (cursor.value['cftc_contract_market_code'] === request.contract.cftcContractMarketCode &&
+                        cursor.value['timestamp'] >= request.startDate.getTime() &&
+                        cursor.value['timestamp'] <= request.endDate.getTime()) {
                         resultSet.push(cursor.value);
                     }
                     cursor.continue();
@@ -110,48 +143,45 @@ export class CachingCFTCApi {
         });
     }
 
-    private storeFuturesRecords(payload: any[]): Promise<void> {
+    private async storeFuturesRecords(reportType: CFTCReportType, payload: any[]): Promise<void> {
+        const db = await this.dbHandle;
+        const objectStoreName = this.objectStoreNameFor(reportType);
         return new Promise((resolve, reject) => {
-            if (this.db == null) {
+            if (db == null) {
                 reject();
                 return;
             }
-            const tx = this.db.transaction(["futuresReports"], "readwrite");
-            tx.oncomplete = (ev) => {
-                resolve();
-            }
-            tx.onerror = (ev) => {
-                const e = (ev.target as IDBTransaction).error;
-                console.error(e);
-                reject(e);
-            }
-            const objectStore = tx.objectStore("futuresReports");
+            const tx = db.transaction([objectStoreName], "readwrite");
+            const objectStore = tx.objectStore(objectStoreName);
             for (const record of payload) {
                 // validate that it was postprocessed
                 if (!Object.hasOwn(record, 'timestamp')) {
                     reject(new Error('futures report item was not preprocessed'));
                 }
-                const txReq = objectStore.add(record);
+                const txReq = objectStore.put(record);
                 txReq.onsuccess = (ev) => {
-                    const insertedKey = (ev.target as IDBRequest).result;
+                    const insertedKey = (ev.target as IDBRequest<IDBValidKey>).result;
                     if (insertedKey !== record['id']) {
                         reject(new Error('assertion failure: IndexedDB did not insert key as expected'));
                     }
                 }
+                txReq.onerror = (ev) => {
+                    const e = (ev.target as IDBRequest<IDBValidKey>).error;
+                    reject(e);
+                }
             }
+            resolve();
         });
     }
 
-    private storeContracts(payload: CommodityContractKind[]): Promise<void> {
-        if (this.db == null) {
-            return Promise.reject();
-        }
+    private async storeContracts(payload: CommodityContractKind[]): Promise<void> {
+        const db = await this.dbHandle;
         return new Promise((resolve, reject) => {
-            if (this.db == null) {
+            if (db == null) {
                 reject();
                 return;
             }
-            const tx = this.db.transaction(["commodityContracts"], "readwrite");
+            const tx = db.transaction(["commodityContracts"], "readwrite");
             tx.oncomplete = (ev) => {
                 resolve();
             }
@@ -171,31 +201,33 @@ export class CachingCFTCApi {
         });
     }
 
-    private getCachedContracts(request: ContractListRequest): Promise<CommodityContractKind[]> {
+    private async getCachedContracts(request: ContractListRequest): Promise<CommodityContractKind[]> {
+        const db = await this.dbHandle;
         return new Promise((resolve, reject) => {
-            if (this.db == null) {
+            if (db == null) {
                 reject(new Error('IndexedDB not initialized'));
                 return;
             }
-            const tx = this.db.transaction(["commodityContracts"], "readonly");
+            let dst: CommodityContractKind[] = [];
+            const tx = db.transaction(["commodityContracts"], "readonly");
             tx.onerror = (ev) => {
                 const e = (ev.target as IDBTransaction).error;
                 console.error(e);
                 reject(e);
             };
+            tx.oncomplete = (ev) => {
+                console.warn(ev);
+                resolve(dst);
+            }
             const commodityContracts = tx.objectStore("commodityContracts");
-            const req = commodityContracts.openCursor(request.reportType);
-            let dst: CommodityContractKind[] = [];
+            const reportTypeIndex = commodityContracts.index("report_type_idx");
+            const req = reportTypeIndex.openCursor();
             req.onsuccess = (ev) => {
                 const cursor = (ev.target as IDBRequest<IDBCursorWithValue>).result;
                 if (cursor != null) {
-                    if (cursor.value['reportType'] !== request.reportType) {
-                        let e = new Error("assertion failure: `reportType` retrieved is not what we asked for");
-                        console.error(e);
-                        reject(e);
-                        return;
+                    if (cursor.value['reportType'] === request.reportType) {
+                        dst.push(cursor.value);
                     }
-                    dst.push(cursor.value);
                     cursor.continue();
                 } else {
                     resolve(dst);
@@ -221,7 +253,7 @@ export interface ContractListRequest {
     reportType: CFTCReportType,
 }
 
-enum CFTCReportType {
+export enum CFTCReportType {
     FinancialFutures, // traders in financial futures -- five classifications: Dealer, Asset Manager, Leveraged Money, Other Reportables and Non-Reportables
     Disaggregated, // agriculture and natural resources -- Producer/Merchant, Swap Dealers, Managed Money and Other Reportables
     Legacy, // old-school report broken down by exchange with reported open interest further broken down into three trader classifications: commercial, non-commercial and non-reportable
@@ -235,7 +267,7 @@ enum CFTCCommodityGroupType {
 
 type CFTCContractMarketCode = string;
 
-interface CommodityContractKind {
+export interface CommodityContractKind {
     // This must be distinct.
     cftcContractMarketCode: CFTCContractMarketCode;
 
@@ -278,9 +310,6 @@ class SocrataApi {
         --data-urlencode "\$where=cftc_contract_market_code='020601' and report_date_as_yyyy_mm_dd between '2022-02-01T08:00:00.000' and '2022-06-01T07:00:00.000'" \
         --compressed
         */
-        if (request.contract.group == null) {
-            throw new Error();
-        }
         const startDateStr = iso8601StringWithNoTimezoneOffset(request.startDate);
         const endDateStr = iso8601StringWithNoTimezoneOffset(request.endDate);
         let baseUrl: string = '';
@@ -341,7 +370,6 @@ class SocrataApi {
             'commodity_name',
             'cftc_market_code',
             'cftc_region_code',
-            'trim(cftc_commodity_code) AS cftc_commodity_code',
             'cftc_subgroup_code',
             'commodity',
             'commodity_subgroup_name',
@@ -365,8 +393,8 @@ class SocrataApi {
             throw new Error('unreachable!');
         }
         let params = new URLSearchParams({
-            '$select': selectColumns.join(','),
-            '$group': selectColumns.join(','),
+            '$select': [...selectColumns, 'trim(cftc_commodity_code) AS cftc_commodity_code'].join(','),
+            '$group': [...selectColumns, 'cftc_commodity_code'].join(','),
             // exclude defunct contracts
             '$having': `max(report_date_as_yyyy_mm_dd) > '${earliestTolerated}'`,
             '$limit': '10000',
@@ -423,6 +451,7 @@ class SocrataApi {
                     record[k] = record[k].trim();
                 }
             }
-        })
+            return record;
+        });
     }
 }
