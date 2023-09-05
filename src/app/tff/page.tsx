@@ -1,12 +1,14 @@
 'use client';
 
-import React from 'react';
+import React, { useCallback } from 'react';
 import ReactEChartsCore from 'echarts-for-react/lib/core';
 import * as echarts from 'echarts/core';
 import { TitleComponent, GridComponent, LegendComponent, TooltipComponent, ToolboxComponent, DataZoomComponent } from 'echarts/components';
 import { BarChart } from 'echarts/charts';
 import { SVGRenderer, CanvasRenderer } from 'echarts/renderers';
 import { rollingZscore } from '@/util';
+import { useRouter } from 'next/navigation';
+import { useSearchParams, usePathname } from 'next/navigation';
 
 async function fetchTffData() {
   // curl -X GET -L -o tff.json 'https://publicreporting.cftc.gov/resource/gpe5-46if.json?$limit=100000'
@@ -16,8 +18,8 @@ async function fetchTffData() {
 
 echarts.use([TitleComponent, TooltipComponent, ToolboxComponent, DataZoomComponent, LegendComponent, GridComponent, BarChart, SVGRenderer, CanvasRenderer]);
 
-function TradersInFinancialFutures({ tffData, shouldZscore, commodityNameSelected }: { tffData: any, shouldZscore: boolean, commodityNameSelected: string }) {
-  const byContractName = tffData.filter((row: any) => row['contract_market_name'] === commodityNameSelected).sort(((a: any, b: any) => {
+function TradersInFinancialFutures({ tffData, filterFn, shouldZscore, commodityNameSelected }: { tffData: any, filterFn: any, shouldZscore: boolean, commodityNameSelected: string }) {
+  const byContractName = tffData.filter(filterFn).sort(((a: any, b: any) => {
     const a_ = new Date(a['report_date_as_yyyy_mm_dd']);
     const b_ = new Date(b['report_date_as_yyyy_mm_dd']);
     return a_.getTime() - b_.getTime();
@@ -38,8 +40,16 @@ function TradersInFinancialFutures({ tffData, shouldZscore, commodityNameSelecte
   }
   const dates = byContractName.map((x: any) => new Date(x['report_date_as_yyyy_mm_dd']).toLocaleDateString());
   const option = {
-    tooltip: {},
-    legend: {},
+    aria: {
+      show: true,
+    },
+    tooltip: {
+      show: true,
+      trigger: 'axis',
+    },
+    legend: {
+      itemGap: 5,
+    },
     toolbox: {
       show: true,
       feature: {
@@ -50,6 +60,8 @@ function TradersInFinancialFutures({ tffData, shouldZscore, commodityNameSelecte
     dataZoom: [
       {
         type: 'slider',
+        filterMode: 'filter',
+        startValue: dates[Math.max(0, dates.length - 50)],
       }
     ],
     grid: {
@@ -88,9 +100,21 @@ function TradersInFinancialFutures({ tffData, shouldZscore, commodityNameSelecte
 }
 
 export default function Tff() {
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams()!;
+  const createQueryString = useCallback(
+    (name: string, value: string) => {
+      const params = new URLSearchParams(searchParams);
+      params.set(name, value);
+      return params.toString();
+    }, [searchParams]);
+  const cftcCodeQueryParam = searchParams.get('cftcCode');
+
   const [tffData, setTffData] = React.useState<any>([]);
   const [categoryTree, setCategoryTree] = React.useState<Array<any>>([]);
-  const [commoditySelected, setCommoditySelected] = React.useState<string>("");
+  const [commoditySelected, setCommoditySelected] = React.useState<string>(cftcCodeQueryParam ?? '');
+
   React.useEffect(() => {
     (async () => {
       const d = await fetchTffData();
@@ -101,48 +125,97 @@ export default function Tff() {
     if (tffData.length > 0) {
       const ct = buildCommodityCategoryTree(tffData);
       setCategoryTree(ct);
-      setCommoditySelected(ct[0][1][0]);
+      if (commoditySelected === '') {
+        setCommoditySelected(ct[0][1][0].cftcContractMarketCode);
+      }
     }
   }, [tffData]);
   return (
     <>
       <main className="flex min-h-screen flex-col items-center justify-between p-10">
         <h2>Traders in Financial Futures</h2>
-        <select title="Futures Contract" className="text-slate-50 bg-slate-900 p-2 m-2 rounded-md"
+        <select title="Futures Contract" className="text-slate-50 bg-slate-900 p-2 m-2 rounded-md text-lg w-3/4"
           value={commoditySelected}
-          onChange={(e: React.ChangeEvent<HTMLSelectElement>) => { setCommoditySelected(e.target.value); }}>
-          {categoryTree.map(([commoditySubgroupName, commodityNames]: [string, string[]], idx: number) => (
-            <optgroup key={idx} label={commoditySubgroupName}>
-              {commodityNames.map((commodityName: string, jdx: number) => (
-                <option key={jdx}>{commodityName}</option>
+          onChange={(e: React.ChangeEvent<HTMLSelectElement>) => {
+             setCommoditySelected(e.target.value);
+             router.push(pathname + "?" + createQueryString('cftcCode', e.target.value));
+             }}>
+          {categoryTree.map(([commodityCategory, commodityContracts]: [string, CommodityContract[]], idx: number) => (
+            <optgroup key={idx} label={commodityCategory}>
+              {commodityContracts.map((commod: CommodityContract, jdx: number) => (
+                <option key={jdx} value={commod.cftcContractMarketCode}>{commod.contractMarketName}</option>
               ))}
             </optgroup>
           ))}
         </select>
-        <TradersInFinancialFutures shouldZscore={false} tffData={tffData} commodityNameSelected={commoditySelected} />
+        <TradersInFinancialFutures
+        filterFn={(x: any) => x['cftc_contract_market_code'] === commoditySelected}
+        shouldZscore={false} tffData={tffData} commodityNameSelected={commoditySelected} />
       </main>
     </>
   );
 }
 
-function buildCommodityCategoryTree(data: any): any {
-  let tbl = new Map<string, string[]>();
-  for (const entry of data) {
-    let commoditySubgroupName = entry['commodity_subgroup_name'];
-    const commodityName = entry['contract_market_name'];
-    // special handling for stock indices:
-    // divide them according to their more specific category labels
+enum CFTCReportType {
+  Financial,
+  Disaggregated,
+  Legacy,
+};
+
+class CommodityContract {
+  cftcReportType: CFTCReportType;
+  contractMarketName: string;
+  commodityName: string;
+  commoditySubgroupName: string;
+  cftcContractMarketCode: string;
+
+  constructor({ commodityName, contractMarketName, commoditySubgroupName, cftcContractMarketCode, cftcReportType }: any) {
+    this.commodityName = commodityName;
+    this.commoditySubgroupName = commoditySubgroupName;
+    this.cftcContractMarketCode = cftcContractMarketCode;
+    this.cftcReportType = cftcReportType;
+    this.contractMarketName = contractMarketName;
+  }
+
+  static fromSocrataApiJson(payload: any): CommodityContract {
+    let commoditySubgroupName = payload['commodity_subgroup_name'];
     if (commoditySubgroupName === 'STOCK INDICES') {
-      commoditySubgroupName = entry['commodity'];
+      // special handling for stock indices:
+      // divide them according to their more specific category labels
+      commoditySubgroupName = payload['commodity'];
     }
-    let subgroups: string[] | undefined;
-    if ((subgroups = tbl.get(commoditySubgroupName)) != null) {
-      if (subgroups.findIndex((x: string) => x === commodityName) === -1) {
-        tbl.set(commoditySubgroupName, [...subgroups, commodityName]);
+    return new CommodityContract({
+      cftcReportType: payload['commodity_group_name'] === 'FINANCIAL INSTRUMENTS' ? CFTCReportType.Financial : CFTCReportType.Disaggregated,
+      contractMarketName: payload['contract_market_name'],
+      cftcContractMarketCode: payload['cftc_contract_market_code'],
+      commodityName: payload['commodity_name'],
+      commoditySubgroupName,
+    });
+  }
+
+  public equals(other: CommodityContract): boolean {
+    return other.cftcContractMarketCode === this.cftcContractMarketCode;
+  }
+
+  public get categoryName(): string {
+    return this.commoditySubgroupName;
+  }
+}
+
+function buildCommodityCategoryTree(data: any): any {
+  let tbl = new Map<string, CommodityContract[]>();
+  for (const entry of data) {
+    let commod = CommodityContract.fromSocrataApiJson(entry);
+    let foundSubgroups: CommodityContract[] | undefined;
+    if ((foundSubgroups = tbl.get(commod.categoryName)) != null) {
+      if (foundSubgroups.findIndex((x: CommodityContract) => commod.equals(x)) === -1) {
+        tbl.set(commod.categoryName, [...foundSubgroups, commod]);
       }
     } else {
-      tbl.set(commoditySubgroupName, [commodityName]);
+      tbl.set(commod.categoryName, [commod]);
     }
   }
   return Array.from(tbl.entries());
 }
+
+// TODO(zds): Filter out garbage from TFF data dump like 2008 Russell
