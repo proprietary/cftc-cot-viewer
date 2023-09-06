@@ -14,6 +14,7 @@ export default function Disaggregated() {
     const [cftcApi, setCftcApi] = React.useState<CachingCFTCApi>();
     const [commodityContracts, setCommodityContracts] = React.useState<CommodityContractKind[]>([]);
     const [reports, setReports] = React.useState<Array<any>>([]);
+    const [startDate, setStartDate] = React.useState<Date>(new Date(2000, 0, 1));
     const [loadingDownstream, setLoadingDownstream] = React.useState<boolean>(false);
     React.useEffect(() => {
         (async () => {
@@ -43,13 +44,13 @@ export default function Disaggregated() {
                 const res = await cftcApi.requestDateRange({
                     reportType: CFTCReportType.Disaggregated,
                     contract: { reportType: CFTCReportType.Disaggregated, cftcContractMarketCode, },
-                    startDate: new Date(2020, 1, 1),
+                    startDate: startDate,
                     endDate: new Date(),
                 });
+                console.log(`startDate: ${startDate.toISOString()}`);
+                console.log(res);
                 setReports(res);
-                console.info('set reports')
                 setLoadingDownstream(false);
-                console.info('set loading downstream')
             } catch (e) {
                 console.error(e);
                 setLoadingDownstream(false);
@@ -58,12 +59,17 @@ export default function Disaggregated() {
                 setLoadingDownstream(false);
             }
         })();
-    }, [cftcApi, cftcContractMarketCode, setReports, setLoadingDownstream]);
+    }, [cftcApi, startDate, cftcContractMarketCode, setReports, setLoadingDownstream]);
     const handleChange = async (ev: React.FormEvent<HTMLSelectElement>) => {
         setCftcContractMarketCode((ev.target as HTMLSelectElement).value);
     }
+    const handleRequestMoreHistory = () => {
+        let d = new Date(startDate.getTime());
+        d.setUTCFullYear(d.getUTCFullYear() - 5);
+        setStartDate(d);
+    }
     return (
-        <div>
+        <div className="flex min-h-screen flex-col items-center justify-between p-10">
             <h1>Disaggregated</h1>
             <div className="bg-inherit grid grid-flow-row">
                 <select className="text-slate-50 bg-slate-900 p-2 m-2 rounded-md text-lg w-3/4"
@@ -79,7 +85,7 @@ export default function Disaggregated() {
                         ))}
                 </select>
                 <div>
-                    <DisaggregatedCommoditiesNetPositioning reports={reports} loading={loadingDownstream} />
+                    <DisaggregatedCommoditiesNetPositioning onRequestMoreHistory={handleRequestMoreHistory} reports={reports} loading={loadingDownstream} />
                 </div>
             </div>
         </div>
@@ -101,7 +107,7 @@ function buildCommodityCategoryTree(source: CommodityContractKind[]): Map<Catego
     return dst;
 }
 
-function DisaggregatedCommoditiesNetPositioning({ reports, loading }: { reports: any[], loading: boolean }) {
+function DisaggregatedCommoditiesNetPositioning({ reports, loading, onRequestMoreHistory }: { onRequestMoreHistory: () => void, reports: any[], loading: boolean }) {
     const dates = reports.map(x => new Date(x['timestamp']).toLocaleDateString());
     const option = {
         aria: {
@@ -160,11 +166,20 @@ function DisaggregatedCommoditiesNetPositioning({ reports, loading }: { reports:
             { type: 'bar', data: reports.map(x => x['nonrept_positions_long_all'] - x['nonrept_positions_short_all']), name: 'Non-Reportables', },
         ]
     };
-
+   
     return (
         <EChartsReactCore
             echarts={echarts}
             showLoading={loading === true || reports.length === 0}
+            onEvents={{
+                datazoom: (ev: any) => {
+                    const threshold: number = 1;
+                    // if scrolled within {threshold}% of the left of the screen, fetch more history 
+                    if (ev.start <= threshold) {
+                        onRequestMoreHistory();
+                    }
+                },
+            }}
             option={option}
             theme={'dark'}
             style={{ height: '1000px', width: '90vw' }} />

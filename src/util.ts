@@ -95,3 +95,9 @@ export function iso8601StringWithNoTimezoneOffset(d: Date): string {
     }
     return s.substring(0, i + 4);
 }
+
+// Calculates the number of days between two dates: a - b
+export function daysDiff(a: Date, b: Date): number {
+    const dayMillis = 1000 * 60 * 60 * 24;
+    return (a.getTime() - b.getTime()) / dayMillis;
+}

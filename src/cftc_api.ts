@@ -88,9 +88,19 @@ export class CachingCFTCApi {
         }
     }
 
+    private meetsRequestRequirements(inp: Array<any>, request: DateRangeRequest): boolean {
+        if (inp.length === 0) {
+            return false;
+        }
+        let oldestDate: Date | null = null;
+        inp.sort((a: any, b: any) => b['timestamp'] - a['timestamp']);
+        return inp.length > 0 && Object.hasOwn(inp[0], 'timestamp') &&
+            inp[0]['timestamp'] <= request.startDate.getTime();
+    }
+
     public async requestDateRange(request: DateRangeRequest): Promise<any[]> {
         const cached = await this.getCachedDateRange(request);
-        if (cached == null || cached.length === 0) {
+        if (cached == null || cached.length === 0 || !this.meetsRequestRequirements(cached, request)) {
             const newData = await this.socrataApi.fetchDateRange(request);
             await this.storeFuturesRecords(request.reportType, newData);
             return newData;
