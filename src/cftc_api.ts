@@ -1,4 +1,4 @@
-import { iso8601StringWithNoTimezoneOffset } from "./util";
+import { daysDiff, iso8601StringWithNoTimezoneOffset } from "./util";
 
 export class CachingCFTCApi {
     // Store underlying data in cache as IndexedDB
@@ -88,25 +88,56 @@ export class CachingCFTCApi {
         }
     }
 
-    private meetsRequestRequirements(inp: Array<any>, request: DateRangeRequest): boolean {
-        if (inp.length === 0) {
-            return false;
-        }
-        let oldestDate: Date | null = null;
-        inp.sort((a: any, b: any) => b['timestamp'] - a['timestamp']);
-        return inp.length > 0 && Object.hasOwn(inp[0], 'timestamp') &&
-            inp[0]['timestamp'] <= request.startDate.getTime();
-    }
-
     public async requestDateRange(request: DateRangeRequest): Promise<any[]> {
         const cached = await this.getCachedDateRange(request);
-        if (cached == null || cached.length === 0 || !this.meetsRequestRequirements(cached, request)) {
+        if (cached == null || cached.length === 0) {
+            // cache is empty
             const newData = await this.socrataApi.fetchDateRange(request);
             await this.storeFuturesRecords(request.reportType, newData);
             return newData;
-        } else {
-            return cached;
         }
+        // can we use the cache? let's find out...
+        let dst = [...cached];
+        dst.sort((a: any, b: any) => a['timestamp'] - b['timestamp']);
+        const oldest = dst[0]['timestamp'];
+        const youngest = dst[dst.length - 1]['timestamp'];
+        // check if the cache is missing older data
+        if (request.startDate.getTime() < oldest) {
+            let missingOlderData = await this.socrataApi.fetchDateRange({
+                ...request,
+                startDate: request.startDate,
+                endDate: new Date(oldest),
+            });
+            if (missingOlderData != null && missingOlderData.length > 0) {
+                await this.storeFuturesRecords(request.reportType, missingOlderData);
+                missingOlderData.sort((a: any, b: any) => a['timestamp'] - b['timestamp']);
+                const nowOldest = missingOlderData[0]['timestamp'];
+                if (nowOldest > request.startDate.getTime()) {
+                    // we reached the beginning of this time series
+                    // notify caller that this is it and it's over
+
+                }
+                dst = dst.concat(missingOlderData);
+            }
+        }
+        // check if the cache is missing the most recent data
+        if (request.endDate.getTime() > youngest) {
+            // is there a Friday at 12:30pm EDT (when the CFTC releases a new report) between the youngest entry and "the end date"
+            const daysBetween = daysDiff(request.endDate, new Date(youngest));
+            const newReportWasIntervening: boolean = daysBetween >= 7.0;
+            if (newReportWasIntervening === true) {
+                const missingNewerData = await this.socrataApi.fetchDateRange({
+                    ...request,
+                    startDate: new Date(youngest),
+                    endDate: request.endDate,
+                });
+                if (missingNewerData != null && missingNewerData.length > 0) {
+                    await this.storeFuturesRecords(request.reportType, missingNewerData);
+                    dst = dst.concat(missingNewerData);
+                }
+            }
+        }
+        return dst.sort((a: any, b: any) => a['timestamp'] - b['timestamp']);
     }
 
     public async requestCommodityContracts(request: ContractListRequest): Promise<CommodityContractKind[]> {

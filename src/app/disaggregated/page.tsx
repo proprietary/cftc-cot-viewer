@@ -14,7 +14,6 @@ export default function Disaggregated() {
     const [cftcApi, setCftcApi] = React.useState<CachingCFTCApi>();
     const [commodityContracts, setCommodityContracts] = React.useState<CommodityContractKind[]>([]);
     const [reports, setReports] = React.useState<Array<any>>([]);
-    const [startDate, setStartDate] = React.useState<Date>(new Date(2000, 0, 1));
     const [loadingDownstream, setLoadingDownstream] = React.useState<boolean>(false);
     React.useEffect(() => {
         (async () => {
@@ -24,11 +23,9 @@ export default function Disaggregated() {
                 const req: ContractListRequest = {
                     reportType: CFTCReportType.Disaggregated,
                 };
-                console.info('loading ag & nat resource commodity contracts...');
                 let b = await api.requestCommodityContracts(req);
                 setCommodityContracts(b);
             } catch (e) {
-                console.error('uh oh');
                 console.error(e);
                 throw e;
             }
@@ -44,11 +41,9 @@ export default function Disaggregated() {
                 const res = await cftcApi.requestDateRange({
                     reportType: CFTCReportType.Disaggregated,
                     contract: { reportType: CFTCReportType.Disaggregated, cftcContractMarketCode, },
-                    startDate: startDate,
+                    startDate: new Date(2000, 0, 1),
                     endDate: new Date(),
                 });
-                console.log(`startDate: ${startDate.toISOString()}`);
-                console.log(res);
                 setReports(res);
                 setLoadingDownstream(false);
             } catch (e) {
@@ -59,14 +54,9 @@ export default function Disaggregated() {
                 setLoadingDownstream(false);
             }
         })();
-    }, [cftcApi, startDate, cftcContractMarketCode, setReports, setLoadingDownstream]);
+    }, [cftcApi, cftcContractMarketCode, setReports, setLoadingDownstream]);
     const handleChange = async (ev: React.FormEvent<HTMLSelectElement>) => {
         setCftcContractMarketCode((ev.target as HTMLSelectElement).value);
-    }
-    const handleRequestMoreHistory = () => {
-        let d = new Date(startDate.getTime());
-        d.setUTCFullYear(d.getUTCFullYear() - 5);
-        setStartDate(d);
     }
     return (
         <div className="flex min-h-screen flex-col items-center justify-between p-10">
@@ -85,7 +75,7 @@ export default function Disaggregated() {
                         ))}
                 </select>
                 <div>
-                    <DisaggregatedCommoditiesNetPositioning onRequestMoreHistory={handleRequestMoreHistory} reports={reports} loading={loadingDownstream} />
+                    <DisaggregatedCommoditiesNetPositioning reports={reports} loading={loadingDownstream} />
                 </div>
             </div>
         </div>
@@ -107,7 +97,7 @@ function buildCommodityCategoryTree(source: CommodityContractKind[]): Map<Catego
     return dst;
 }
 
-function DisaggregatedCommoditiesNetPositioning({ reports, loading, onRequestMoreHistory }: { onRequestMoreHistory: () => void, reports: any[], loading: boolean }) {
+function DisaggregatedCommoditiesNetPositioning({ reports, loading }: { reports: any[], loading: boolean }) {
     const dates = reports.map(x => new Date(x['timestamp']).toLocaleDateString());
     const option = {
         aria: {
@@ -171,15 +161,6 @@ function DisaggregatedCommoditiesNetPositioning({ reports, loading, onRequestMor
         <EChartsReactCore
             echarts={echarts}
             showLoading={loading === true || reports.length === 0}
-            onEvents={{
-                datazoom: (ev: any) => {
-                    const threshold: number = 1;
-                    // if scrolled within {threshold}% of the left of the screen, fetch more history 
-                    if (ev.start <= threshold) {
-                        onRequestMoreHistory();
-                    }
-                },
-            }}
             option={option}
             theme={'dark'}
             style={{ height: '1000px', width: '90vw' }} />
