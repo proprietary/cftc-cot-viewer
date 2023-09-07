@@ -19,7 +19,6 @@ export class CachingCFTCApi {
         return new Promise((resolve, reject) => {
             const dbReq = window.indexedDB.open("so_libhack_cot", 1);
             if (dbReq != null) {
-                console.info("dbReq != null");
                 dbReq.onsuccess = function (ev: Event) {
                     const db = (ev.target as IDBOpenDBRequest).result;
                     that.db = db;
@@ -124,7 +123,9 @@ export class CachingCFTCApi {
         if (request.endDate.getTime() > youngest) {
             // is there a Friday at 12:30pm EDT (when the CFTC releases a new report) between the youngest entry and "the end date"
             const daysBetween = daysDiff(request.endDate, new Date(youngest));
-            const newReportWasIntervening: boolean = daysBetween >= 7.0;
+            // `request.endDate` is the Tuesday on the same week as the report (released Fri)
+            // so check whether 7+3=10 days have passed
+            const newReportWasIntervening: boolean = daysBetween >= 10.0;
             if (newReportWasIntervening === true) {
                 const missingNewerData = await this.socrataApi.fetchDateRange({
                     ...request,

@@ -6,15 +6,22 @@ import EChartsReactCore from 'echarts-for-react/lib/core';
 import { BarChart } from 'echarts/charts';
 import { TitleComponent, GridComponent, LegendComponent, ToolboxComponent, TooltipComponent, DataZoomComponent, } from 'echarts/components';
 import { SVGRenderer, CanvasRenderer } from 'echarts/renderers';
+import { useRouter } from 'next/navigation';
+import { useSearchParams, usePathname } from 'next/navigation';
 
 import { CachingCFTCApi, DateRangeRequest, CFTCReportType, ContractListRequest, CommodityContractKind } from '@/cftc_api';
 
 export default function Disaggregated() {
-    const [cftcContractMarketCode, setCftcContractMarketCode] = React.useState<string>('');
     const [cftcApi, setCftcApi] = React.useState<CachingCFTCApi>();
     const [commodityContracts, setCommodityContracts] = React.useState<CommodityContractKind[]>([]);
     const [reports, setReports] = React.useState<Array<any>>([]);
     const [loadingDownstream, setLoadingDownstream] = React.useState<boolean>(false);
+    const router = useRouter();
+    const pathname = usePathname();
+    const searchParams = useSearchParams();
+    const [cftcContractMarketCode, setCftcContractMarketCode] = React.useState<string>(searchParams.get('cftcCode') ?? '');
+
+    // Retrieve "contracts" aka the types of contracts, like "WTI Crude Oil".
     React.useEffect(() => {
         (async () => {
             try {
@@ -23,21 +30,26 @@ export default function Disaggregated() {
                 const req: ContractListRequest = {
                     reportType: CFTCReportType.Disaggregated,
                 };
-                let b = await api.requestCommodityContracts(req);
-                setCommodityContracts(b);
+                let allContracts = await api.requestCommodityContracts(req);
+                setCommodityContracts(allContracts);
+                if (cftcContractMarketCode == null || cftcContractMarketCode.length === 0) {
+                    setCftcContractMarketCode(allContracts[0].cftcContractMarketCode);
+                }
             } catch (e) {
                 console.error(e);
                 throw e;
             }
         })();
-    }, [setCommodityContracts, setCftcApi]);
+    }, [setCommodityContracts, setCftcApi, setCftcContractMarketCode]);
+
+    // Retrieve the actual Commitment of Traders data.
     React.useEffect(() => {
-        setLoadingDownstream(true);
         (async () => {
             try {
                 if (cftcApi == null || cftcContractMarketCode == null || cftcContractMarketCode.length === 0) {
                     return;
                 }
+                setLoadingDownstream(true);
                 const res = await cftcApi.requestDateRange({
                     reportType: CFTCReportType.Disaggregated,
                     contract: { reportType: CFTCReportType.Disaggregated, cftcContractMarketCode, },
@@ -56,7 +68,13 @@ export default function Disaggregated() {
         })();
     }, [cftcApi, cftcContractMarketCode, setReports, setLoadingDownstream]);
     const handleChange = async (ev: React.FormEvent<HTMLSelectElement>) => {
-        setCftcContractMarketCode((ev.target as HTMLSelectElement).value);
+        const newCftcCode = (ev.target as HTMLSelectElement).value;
+        setCftcContractMarketCode(newCftcCode);
+        // keep in sync with query string
+        let p = new URLSearchParams(searchParams);
+        p.set('cftcCode', newCftcCode);
+        const newSearchParams = p.toString();
+        router.push(pathname + "?" + newSearchParams);
     }
     return (
         <div className="flex min-h-screen flex-col items-center justify-between p-10">
