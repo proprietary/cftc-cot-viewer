@@ -6,39 +6,23 @@ import * as echarts from 'echarts/core';
 import { TitleComponent, GridComponent, LegendComponent, TooltipComponent, ToolboxComponent, DataZoomComponent } from 'echarts/components';
 import { BarChart } from 'echarts/charts';
 import { SVGRenderer, CanvasRenderer } from 'echarts/renderers';
-import { rollingZscore } from '@/util';
 import { useRouter } from 'next/navigation';
 import { useSearchParams, usePathname } from 'next/navigation';
-
-async function fetchTffData() {
-  // curl -X GET -L -o tff.json 'https://publicreporting.cftc.gov/resource/gpe5-46if.json?$limit=100000'
-  let r = await fetch('/tff.json');
-  return await r.json();
-}
+import { CachingCFTCApi, ContractListRequest, CFTCReportType, CommodityContractKind } from '@/cftc_api';
 
 echarts.use([TitleComponent, TooltipComponent, ToolboxComponent, DataZoomComponent, LegendComponent, GridComponent, BarChart, SVGRenderer, CanvasRenderer]);
 
-function TradersInFinancialFutures({ tffData, filterFn, shouldZscore, commodityNameSelected }: { tffData: any, filterFn: any, shouldZscore: boolean, commodityNameSelected: string }) {
-  const byContractName = tffData.filter(filterFn).sort(((a: any, b: any) => {
-    const a_ = new Date(a['report_date_as_yyyy_mm_dd']);
-    const b_ = new Date(b['report_date_as_yyyy_mm_dd']);
-    return a_.getTime() - b_.getTime();
-  }));
-  let dealersBars = byContractName
+type CategoryName = string;
+
+function TradersInFinancialFutures({ reports, loading }: { reports: any[], loading: boolean }) {
+  let dealersBars = reports
     .map((x: any) => (x['dealer_positions_long_all'] - x['dealer_positions_short_all']));
-  let assetMgrsBars = byContractName
+  let assetMgrsBars = reports
     .map((x: any) => x['asset_mgr_positions_long'] - x['asset_mgr_positions_short']);
-  let levFundsBars = byContractName.map((x: any) => x['lev_money_positions_long'] - x['lev_money_positions_short']);
-  let otherRptBars = byContractName.map((x: any) => x['other_rept_positions_long'] - x['other_rept_positions_short']);
-  let nonRptBars = byContractName.map((x: any) => x['nonrept_positions_long_all'] - x['nonrept_positions_short_all']);
-  if (shouldZscore === true && tffData.length > 0) {
-    dealersBars = rollingZscore(dealersBars, 504);
-    nonRptBars = rollingZscore(nonRptBars, 504);
-    assetMgrsBars = rollingZscore(assetMgrsBars, 504);
-    levFundsBars = rollingZscore(levFundsBars, 504);
-    otherRptBars = rollingZscore(otherRptBars, 504);
-  }
-  const dates = byContractName.map((x: any) => new Date(x['report_date_as_yyyy_mm_dd']).toLocaleDateString());
+  let levFundsBars = reports.map((x: any) => x['lev_money_positions_long'] - x['lev_money_positions_short']);
+  let otherRptBars = reports.map((x: any) => x['other_rept_positions_long'] - x['other_rept_positions_short']);
+  let nonRptBars = reports.map((x: any) => x['nonrept_positions_long_all'] - x['nonrept_positions_short_all']);
+  const dates = reports.map((x: any) => new Date(x['timestamp']).toLocaleDateString());
   const option = {
     aria: {
       show: true,
@@ -49,6 +33,10 @@ function TradersInFinancialFutures({ tffData, filterFn, shouldZscore, commodityN
     },
     legend: {
       itemGap: 5,
+    },
+    title: {
+      show: true,
+      text: reports != null && reports.length > 0 ? reports[0]['contract_market_name'] : '',
     },
     toolbox: {
       show: true,
@@ -92,7 +80,7 @@ function TradersInFinancialFutures({ tffData, filterFn, shouldZscore, commodityN
   return (
     <ReactEChartsCore
       echarts={echarts}
-      showLoading={byContractName.length === 0}
+      showLoading={loading || reports.length === 0}
       option={option}
       theme={'dark'}
       style={{ height: '1000px', width: '90vw' }} />
@@ -111,111 +99,102 @@ export default function Tff() {
     }, [searchParams]);
   const cftcCodeQueryParam = searchParams.get('cftcCode');
 
-  const [tffData, setTffData] = React.useState<any>([]);
-  const [categoryTree, setCategoryTree] = React.useState<Array<any>>([]);
+  const [loading, setLoading] = React.useState<boolean>(false);
+  const [cftcApi, setCftcApi] = React.useState<CachingCFTCApi>();
+  const [tffData, setTffData] = React.useState<Array<any>>([]);
+  const [futuresContracts, setFuturesContracts] = React.useState<CommodityContractKind[]>([]);
   const [commoditySelected, setCommoditySelected] = React.useState<string>(cftcCodeQueryParam ?? '');
 
+  // Retrieve "contracts", aka all the different types of futures contracts.
   React.useEffect(() => {
     (async () => {
-      const d = await fetchTffData();
-      setTffData(d);
-    })();
-  }, []);
-  React.useEffect(() => {
-    if (tffData.length > 0) {
-      const ct = buildCommodityCategoryTree(tffData);
-      setCategoryTree(ct);
-      if (commoditySelected === '') {
-        setCommoditySelected(ct[0][1][0].cftcContractMarketCode);
+      try {
+        let api = new CachingCFTCApi();
+        setCftcApi(api);
+        const req: ContractListRequest = {
+          reportType: CFTCReportType.FinancialFutures,
+        };
+        let contracts = await api.requestCommodityContracts(req);
+        setFuturesContracts(contracts);
+        if (commoditySelected == null || commoditySelected.length === 0) {
+          setCommoditySelected(contracts[0].cftcContractMarketCode);
+        }
+      } catch (e) {
+        console.error(e);
+        throw e;
       }
-    }
-  }, [tffData]);
+    })();
+  }, [setCftcApi, setFuturesContracts, setCommoditySelected]);
+
+  // Retrieve the actual Commitment of Traders reports data.
+  React.useEffect(() => {
+    (async () => {
+      try {
+        if (cftcApi == null) {
+          return;
+        }
+        setLoading(true);
+        const tffData = await cftcApi.requestDateRange({
+          reportType: CFTCReportType.FinancialFutures,
+          startDate: new Date(2000, 0, 1),
+          endDate: new Date(),
+          contract: {
+            reportType: CFTCReportType.FinancialFutures,
+            cftcContractMarketCode: commoditySelected,
+          },
+        });
+        setTffData(tffData);
+      } catch (e) {
+        console.error(e);
+        throw e;
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, [setTffData, commoditySelected, setLoading]);
+  const handleChangeCommoditySelected = (ev: React.ChangeEvent<HTMLSelectElement>) => {
+    setCommoditySelected(ev.target.value);
+    router.push(pathname + "?" + createQueryString("cftcCode", ev.target.value));
+  };
   return (
     <>
       <main className="flex min-h-screen flex-col items-center justify-between p-10">
         <h2>Traders in Financial Futures</h2>
         <select title="Futures Contract" className="text-slate-50 bg-slate-900 p-2 m-2 rounded-md text-lg w-3/4"
           value={commoditySelected}
-          onChange={(e: React.ChangeEvent<HTMLSelectElement>) => {
-             setCommoditySelected(e.target.value);
-             router.push(pathname + "?" + createQueryString('cftcCode', e.target.value));
-             }}>
-          {categoryTree.map(([commodityCategory, commodityContracts]: [string, CommodityContract[]], idx: number) => (
-            <optgroup key={idx} label={commodityCategory}>
-              {commodityContracts.map((commod: CommodityContract, jdx: number) => (
-                <option key={jdx} value={commod.cftcContractMarketCode}>{commod.contractMarketName}</option>
-              ))}
-            </optgroup>
-          ))}
+          onChange={handleChangeCommoditySelected}>
+          {Array.from(buildFinancialFuturesCategoryTree(futuresContracts).entries())
+            .map(([commodityCategory, commodityContracts]: [CategoryName, CommodityContractKind[]], idx: number) => (
+              <optgroup key={idx} label={commodityCategory}>
+                {commodityContracts.map((commod: CommodityContractKind, jdx: number) => (
+                  <option key={jdx} value={commod.cftcContractMarketCode}>{commod.marketAndExchangeNames}</option>
+                ))}
+              </optgroup>
+            ))}
         </select>
-        <TradersInFinancialFutures
-        filterFn={(x: any) => x['cftc_contract_market_code'] === commoditySelected}
-        shouldZscore={false} tffData={tffData} commodityNameSelected={commoditySelected} />
+        <TradersInFinancialFutures reports={tffData} loading={loading} />
       </main>
     </>
   );
 }
 
-enum CFTCReportType {
-  Financial,
-  Disaggregated,
-  Legacy,
-};
-
-class CommodityContract {
-  cftcReportType: CFTCReportType;
-  contractMarketName: string;
-  commodityName: string;
-  commoditySubgroupName: string;
-  cftcContractMarketCode: string;
-
-  constructor({ commodityName, contractMarketName, commoditySubgroupName, cftcContractMarketCode, cftcReportType }: any) {
-    this.commodityName = commodityName;
-    this.commoditySubgroupName = commoditySubgroupName;
-    this.cftcContractMarketCode = cftcContractMarketCode;
-    this.cftcReportType = cftcReportType;
-    this.contractMarketName = contractMarketName;
-  }
-
-  static fromSocrataApiJson(payload: any): CommodityContract {
-    let commoditySubgroupName = payload['commodity_subgroup_name'];
-    if (commoditySubgroupName === 'STOCK INDICES') {
+function buildFinancialFuturesCategoryTree(contracts: CommodityContractKind[]): Map<CategoryName, CommodityContractKind[]> {
+  let dst = new Map<CategoryName, CommodityContractKind[]>();
+  for (const entry of contracts) {
+    let categoryName: CategoryName = entry.commoditySubgroupName!;
+    if (categoryName === 'STOCK INDICES') {
       // special handling for stock indices:
-      // divide them according to their more specific category labels
-      commoditySubgroupName = payload['commodity'];
+      // categorize them with a more granular category label (e.g., "S&P Sectors") which is given as 'commodity'
+      categoryName = entry.commodityName!;
     }
-    return new CommodityContract({
-      cftcReportType: payload['commodity_group_name'] === 'FINANCIAL INSTRUMENTS' ? CFTCReportType.Financial : CFTCReportType.Disaggregated,
-      contractMarketName: payload['contract_market_name'],
-      cftcContractMarketCode: payload['cftc_contract_market_code'],
-      commodityName: payload['commodity_name'],
-      commoditySubgroupName,
-    });
-  }
-
-  public equals(other: CommodityContract): boolean {
-    return other.cftcContractMarketCode === this.cftcContractMarketCode;
-  }
-
-  public get categoryName(): string {
-    return this.commoditySubgroupName;
-  }
-}
-
-function buildCommodityCategoryTree(data: any): any {
-  let tbl = new Map<string, CommodityContract[]>();
-  for (const entry of data) {
-    let commod = CommodityContract.fromSocrataApiJson(entry);
-    let foundSubgroups: CommodityContract[] | undefined;
-    if ((foundSubgroups = tbl.get(commod.categoryName)) != null) {
-      if (foundSubgroups.findIndex((x: CommodityContract) => commod.equals(x)) === -1) {
-        tbl.set(commod.categoryName, [...foundSubgroups, commod]);
+    let foundSubgroups: CommodityContractKind[] | undefined;
+    if ((foundSubgroups = dst.get(categoryName)) != null) {
+      if (foundSubgroups.findIndex((x: CommodityContractKind) => x.cftcContractMarketCode === entry.cftcContractMarketCode) === -1) {
+        dst.set(categoryName, [...foundSubgroups, entry]);
       }
     } else {
-      tbl.set(commod.categoryName, [commod]);
+      dst.set(categoryName, [entry]);
     }
   }
-  return Array.from(tbl.entries());
+  return dst;
 }
-
-// TODO(zds): Filter out garbage from TFF data dump like 2008 Russell

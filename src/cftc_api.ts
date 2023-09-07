@@ -493,6 +493,6 @@ class SocrataApi {
                 }
             }
             return record;
-        });
+        }).sort((a: any, b: any) => a['timestamp'] - b['timestamp']);
     }
 }
