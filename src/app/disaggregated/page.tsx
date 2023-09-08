@@ -69,12 +69,12 @@ export default function Disaggregated() {
     }, [cftcApi, cftcContractMarketCode, setReports, setLoadingDownstream]);
     const handleChange = async (ev: React.FormEvent<HTMLSelectElement>) => {
         const newCftcCode = (ev.target as HTMLSelectElement).value;
-        setCftcContractMarketCode(newCftcCode);
         // keep in sync with query string
         let p = new URLSearchParams(searchParams);
         p.set('cftcCode', newCftcCode);
         const newSearchParams = p.toString();
         router.push(pathname + "?" + newSearchParams);
+        setCftcContractMarketCode(newCftcCode);
     }
     return (
         <div className="flex min-h-screen flex-col items-center justify-between p-10">

@@ -153,8 +153,8 @@ export default function Tff() {
     })();
   }, [setTffData, commoditySelected, setLoading]);
   const handleChangeCommoditySelected = (ev: React.ChangeEvent<HTMLSelectElement>) => {
-    setCommoditySelected(ev.target.value);
     router.push(pathname + "?" + createQueryString("cftcCode", ev.target.value));
+    setCommoditySelected(ev.target.value);
   };
   return (
     <>

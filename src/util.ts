@@ -101,3 +101,10 @@ export function daysDiff(a: Date, b: Date): number {
     const dayMillis = 1000 * 60 * 60 * 24;
     return (a.getTime() - b.getTime()) / dayMillis;
 }
+
+export function plusDays(d: Date, nDays: number): Date {
+    let dst = new Date(d.getTime());
+    const dayMillis = 1000 * 60 * 60 * 24;
+    dst.setTime(dst.getTime() + nDays*dayMillis);
+    return dst;
+}

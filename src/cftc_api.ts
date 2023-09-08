@@ -1,4 +1,4 @@
-import { daysDiff, iso8601StringWithNoTimezoneOffset } from "./util";
+import { daysDiff, iso8601StringWithNoTimezoneOffset, plusDays } from "./util";
 
 export class CachingCFTCApi {
     // Store underlying data in cache as IndexedDB
@@ -98,38 +98,50 @@ export class CachingCFTCApi {
         // can we use the cache? let's find out...
         let dst = [...cached];
         dst.sort((a: any, b: any) => a['timestamp'] - b['timestamp']);
-        const oldest = dst[0]['timestamp'];
-        const youngest = dst[dst.length - 1]['timestamp'];
+        const oldest = dst[0];
+        const youngest = dst[dst.length - 1];
         // check if the cache is missing older data
-        if (request.startDate.getTime() < oldest) {
+        if (request.startDate.getTime() < oldest['timestamp'] &&
+            /* check if this is a "dinosaur" which means there are no older entries (begining of history of the dataset) */
+            !(oldest.hasOwnProperty('dinosaur') && oldest['dinosaur'] === true)) {
             let missingOlderData = await this.socrataApi.fetchDateRange({
                 ...request,
                 startDate: request.startDate,
-                endDate: new Date(oldest),
+                // subtract 1 day to not re-retrieve a record, because third-party API's date lookup fxn is inclusive
+                endDate: plusDays(new Date(oldest['timestamp']), -1),
             });
-            if (missingOlderData != null && missingOlderData.length > 0) {
+            if (missingOlderData != null && missingOlderData.length === 0) {
+                // we reached the beginning of this time series
+                // add "dinosaur" to the stored series so future callers know not to request from the third-party API again
+                this.setDinosaur(request.reportType, oldest['id']);
+            } else if (missingOlderData != null && missingOlderData.length > 0) {
                 await this.storeFuturesRecords(request.reportType, missingOlderData);
                 missingOlderData.sort((a: any, b: any) => a['timestamp'] - b['timestamp']);
                 const nowOldest = missingOlderData[0]['timestamp'];
+                dst = dst.concat(missingOlderData);
                 if (nowOldest > request.startDate.getTime()) {
                     // we reached the beginning of this time series
-                    // notify caller that this is it and it's over
-
-                }
-                dst = dst.concat(missingOlderData);
+                    // add "dinosaur" to the stored series so future callers know not to look again
+                    this.setDinosaur(request.reportType, nowOldest['id']);
+                }    
+            } else {
+                throw new Error(`Request for missing older data returned null`);
             }
         }
         // check if the cache is missing the most recent data
-        if (request.endDate.getTime() > youngest) {
-            // is there a Friday at 12:30pm EDT (when the CFTC releases a new report) between the youngest entry and "the end date"
-            const daysBetween = daysDiff(request.endDate, new Date(youngest));
+        if (request.endDate.getTime() > youngest['timestamp']) {
+            // is there a Friday at 12:30pm PDT (when the CFTC releases a new report) between the youngest entry and "the end date"
+            let youngestReportDateTime = new Date(youngest['timestamp']);
+            youngestReportDateTime.setUTCHours(19, 30, 0, 0);
+            const daysBetween = daysDiff(request.endDate, youngestReportDateTime);
             // `request.endDate` is the Tuesday on the same week as the report (released Fri)
             // so check whether 7+3=10 days have passed
             const newReportWasIntervening: boolean = daysBetween >= 10.0;
+            console.info(`daysBetween=${daysBetween}`);
             if (newReportWasIntervening === true) {
                 const missingNewerData = await this.socrataApi.fetchDateRange({
                     ...request,
-                    startDate: new Date(youngest),
+                    startDate: new Date(youngest['timestamp']),
                     endDate: request.endDate,
                 });
                 if (missingNewerData != null && missingNewerData.length > 0) {
@@ -150,6 +162,62 @@ export class CachingCFTCApi {
         } else {
             return cached;
         }
+    }
+
+    private async setDinosaur(reportType: CFTCReportType, id: string): Promise<void> {
+        const db = await this.dbHandle;
+        let report = await this.getReport(reportType, id);
+        report['dinosaur'] = true;
+        return new Promise((resolve, reject) => {
+            const objectStoreName = this.objectStoreNameFor(reportType);
+            const txn = db.transaction(objectStoreName, "readwrite");
+            txn.oncomplete = (ev) => {
+                resolve();
+            }
+            txn.onerror = (ev) => {
+                const e = (ev.target as IDBTransaction).error;
+                reject(e);
+            }
+            const os = txn.objectStore(objectStoreName);
+            const req = os.put(report);
+            req.onsuccess = (ev) => {
+                resolve();
+            }
+            req.onerror = (ev) => {
+                reject();
+            }
+        });
+    }
+
+    private async getReport(reportType: CFTCReportType, id: string): Promise<any> {
+        if (id == null || id.length === 0) {
+            console.error(`Missing "id" in futures COT report lookup`);
+            return Promise.reject();
+        }
+        const db = await this.dbHandle;
+        const objectStoreName =  this.objectStoreNameFor(reportType);
+        return new Promise((resolve, reject) => {
+            let result: any = {};
+            const txn = db.transaction(objectStoreName);
+            txn.oncomplete = (ev) => {
+                resolve(result);
+            }
+            txn.onerror = (ev) => {
+                const e = (ev.target as IDBTransaction).error;
+                reject(e);
+            }
+            const os = txn.objectStore(objectStoreName);
+            const req = os.get(id);
+            req.onsuccess = (ev) => {
+                const result_ = (ev.target as IDBRequest).result;
+                result = result_;
+                resolve(result_);
+            }
+            req.onerror = (ev) => {
+                const e = (ev.target as IDBRequest).error;
+                reject(e);
+            }
+        })
     }
 
     private async getCachedDateRange(request: DateRangeRequest): Promise<any[]> {
