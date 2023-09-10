@@ -138,7 +138,6 @@ export class CachingCFTCApi {
             // `request.endDate` is the Tuesday on the same week as the report (released Fri)
             // so check whether 7+3=10 days have passed
             const newReportWasIntervening: boolean = daysBetween >= 10.0;
-            console.info(`daysBetween=${daysBetween}`);
             if (newReportWasIntervening === true) {
                 const missingNewerData = await this.socrataApi.fetchDateRange({
                     ...request,

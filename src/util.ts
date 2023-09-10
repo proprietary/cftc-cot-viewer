@@ -72,7 +72,7 @@ export function rollingStd(arr: number[], lookback: number): number[] {
 }
 
 
-export function rollingZscore(arr: Array<number>, lookback: number | undefined): Array<number> {
+export function rollingZscore2(arr: Array<number>, lookback: number | undefined): Array<number> {
     if (lookback == null || lookback > arr.length) {
         lookback = arr.length;
     }

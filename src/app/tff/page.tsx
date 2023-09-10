@@ -4,20 +4,21 @@ import React, { useCallback } from 'react';
 import ReactEChartsCore from 'echarts-for-react/lib/core';
 import * as echarts from 'echarts/core';
 import { TitleComponent, GridComponent, LegendComponent, TooltipComponent, ToolboxComponent, DataZoomComponent } from 'echarts/components';
-import { BarChart } from 'echarts/charts';
+import { BarChart, LineChart } from 'echarts/charts';
 import { SVGRenderer, CanvasRenderer } from 'echarts/renderers';
 import { useRouter } from 'next/navigation';
 import { useSearchParams, usePathname } from 'next/navigation';
 import { CachingCFTCApi, ContractListRequest, CFTCReportType, CommodityContractKind } from '@/cftc_api';
 import { IFinancialFuturesCOTReport } from '@/socrata_cot_report';
+import { rollingZscore } from '@/chart_math';
 
-echarts.use([TitleComponent, TooltipComponent, ToolboxComponent, DataZoomComponent, LegendComponent, GridComponent, BarChart, SVGRenderer, CanvasRenderer]);
+echarts.use([TitleComponent, LineChart, TooltipComponent, ToolboxComponent, DataZoomComponent, LegendComponent, GridComponent, BarChart, SVGRenderer, CanvasRenderer]);
 
 type CategoryName = string;
 
 function TradersInFinancialFutures({ reports, loading }: { reports: IFinancialFuturesCOTReport[], loading: boolean }) {
   let dealersBars = reports
-    .map((x: any) => (x['dealer_positions_long_all'] - x['dealer_positions_short_all']));
+    .map((x: IFinancialFuturesCOTReport) => (x.dealer_positions_long_all - x.dealer_positions_short_all));
   let assetMgrsBars = reports
     .map((x: any) => x['asset_mgr_positions_long'] - x['asset_mgr_positions_short']);
   let levFundsBars = reports.map((x: any) => x['lev_money_positions_long'] - x['lev_money_positions_short']);
@@ -88,10 +89,102 @@ function TradersInFinancialFutures({ reports, loading }: { reports: IFinancialFu
   );
 }
 
-function ZscoredLineChart({ reports, loading }: {reports: any[], loading: boolean}) {
+function ZscoredLineChart({ reports, loading }: { reports: IFinancialFuturesCOTReport[], loading: boolean }) {
+  const [zsLookback, setZsLookback] = React.useState<number>(50);
+  let dealers = reports.map(x => (x.dealer_positions_long_all - x.dealer_positions_short_all) / x.open_interest_all);
+  let assetMgrs = reports.map(x => (x.asset_mgr_positions_long - x.asset_mgr_positions_short) / x.open_interest_all);
+  let levFunds = reports.map(x => (x.lev_money_positions_long - x.lev_money_positions_short) / x.open_interest_all);
+  let otherRpts = reports.map(x => (x.other_rept_positions_long - x.other_rept_positions_short) / x.open_interest_all);
+  let nonRpts = reports.map(x => (x.nonrept_positions_long_all - x.nonrept_positions_short_all) / x.open_interest_all);
+  dealers = rollingZscore(dealers, zsLookback);
+  assetMgrs = rollingZscore(assetMgrs, zsLookback);
+  levFunds = rollingZscore(levFunds, zsLookback);
+  otherRpts = rollingZscore(otherRpts, zsLookback);
+  nonRpts = rollingZscore(nonRpts, zsLookback);
+  const dates = reports.map(x => new Date(x.timestamp).toLocaleDateString());
+  const echartsOption = {
+    tooltip: {},
+    title: {},
+    legend: {},
+    grid: {},
+    toolbox: {
+      show: true,
+      feature: {
+        dataZoom: {
+          show: true,
+        },
+      }
+    },
+    dataZoom: [
+      {
+        type: 'slider',
+        filterMode: 'filter',
+        //startValue: dates[Math.max(0, dates.length - 50)],
+      }
+    ],
+    xAxis: [
+      {
+        type: 'category',
+        data: dates,
+      },
+    ],
+    yAxis: [
+      {
+        type: 'value',
+        name: 'Net Positioning (z-score)',
+      }
+    ],
+    series: [
+      {
+        name: 'Dealers',
+        type: 'line',
+        stack: 'Total',
+        data: dealers,
+      },
+      {
+        name: 'Asset Managers',
+        type: 'line',
+        stack: 'Total',
+        data: assetMgrs,
+      },
+      {
+        name: 'Leveraged Funds',
+        type: 'line',
+        stack: 'Total',
+        data: levFunds,
+      },
+      {
+        name: 'Other Reportables',
+        type: 'line',
+        stack: 'Total',
+        data: otherRpts,
+      },
+      {
+        name: 'Non-Reportables',
+        type: 'line',
+        stack: 'Total',
+        data: nonRpts,
+      },
+    ],
+  };
+  const handleChangeZsLookback = (ev: React.ChangeEvent<HTMLInputElement>) => {
+    const n = parseInt(ev.target.value);
+    console.log(n);
+    setZsLookback(n);
+  };
   return (
-    <div>
-
+    <div className="my-5">
+      <div>
+        <label>
+          Lookback (number of weeks to use to standardize positioning)
+          <input type="range" min={5} max={500} value={zsLookback} onChange={handleChangeZsLookback} />
+        </label>
+      </div>
+      <ReactEChartsCore echarts={echarts}
+        showLoading={loading || reports.length === 0}
+        option={echartsOption}
+        theme={"dark"}
+        style={{ height: '1000px', width: '90vw' }} />
     </div>
   );
 }
@@ -160,7 +253,7 @@ export default function Tff() {
         setLoading(false);
       }
     })();
-  }, [setTffData, commoditySelected, setLoading]);
+  }, [cftcApi, setTffData, commoditySelected, setLoading]);
   const handleChangeCommoditySelected = (ev: React.ChangeEvent<HTMLSelectElement>) => {
     router.push(pathname + "?" + createQueryString("cftcCode", ev.target.value));
     setCommoditySelected(ev.target.value);
@@ -182,6 +275,7 @@ export default function Tff() {
             ))}
         </select>
         <TradersInFinancialFutures reports={tffData} loading={loading} />
+        <ZscoredLineChart reports={tffData} loading={false} />
       </main>
     </>
   );
