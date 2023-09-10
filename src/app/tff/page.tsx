@@ -9,12 +9,13 @@ import { SVGRenderer, CanvasRenderer } from 'echarts/renderers';
 import { useRouter } from 'next/navigation';
 import { useSearchParams, usePathname } from 'next/navigation';
 import { CachingCFTCApi, ContractListRequest, CFTCReportType, CommodityContractKind } from '@/cftc_api';
+import { IFinancialFuturesCOTReport } from '@/socrata_cot_report';
 
 echarts.use([TitleComponent, TooltipComponent, ToolboxComponent, DataZoomComponent, LegendComponent, GridComponent, BarChart, SVGRenderer, CanvasRenderer]);
 
 type CategoryName = string;
 
-function TradersInFinancialFutures({ reports, loading }: { reports: any[], loading: boolean }) {
+function TradersInFinancialFutures({ reports, loading }: { reports: IFinancialFuturesCOTReport[], loading: boolean }) {
   let dealersBars = reports
     .map((x: any) => (x['dealer_positions_long_all'] - x['dealer_positions_short_all']));
   let assetMgrsBars = reports
@@ -87,6 +88,14 @@ function TradersInFinancialFutures({ reports, loading }: { reports: any[], loadi
   );
 }
 
+function ZscoredLineChart({ reports, loading }: {reports: any[], loading: boolean}) {
+  return (
+    <div>
+
+    </div>
+  );
+}
+
 export default function Tff() {
   const router = useRouter();
   const pathname = usePathname();
@@ -101,7 +110,7 @@ export default function Tff() {
 
   const [loading, setLoading] = React.useState<boolean>(false);
   const [cftcApi, setCftcApi] = React.useState<CachingCFTCApi>();
-  const [tffData, setTffData] = React.useState<Array<any>>([]);
+  const [tffData, setTffData] = React.useState<Array<IFinancialFuturesCOTReport>>([]);
   const [futuresContracts, setFuturesContracts] = React.useState<CommodityContractKind[]>([]);
   const [commoditySelected, setCommoditySelected] = React.useState<string>(cftcCodeQueryParam ?? '');
 
@@ -134,7 +143,7 @@ export default function Tff() {
           return;
         }
         setLoading(true);
-        const tffData = await cftcApi.requestDateRange({
+        const tffData: IFinancialFuturesCOTReport[] = await cftcApi.requestDateRange({
           reportType: CFTCReportType.FinancialFutures,
           startDate: new Date(2000, 0, 1),
           endDate: new Date(),
@@ -142,7 +151,7 @@ export default function Tff() {
             reportType: CFTCReportType.FinancialFutures,
             cftcContractMarketCode: commoditySelected,
           },
-        });
+        }) as IFinancialFuturesCOTReport[];
         setTffData(tffData);
       } catch (e) {
         console.error(e);

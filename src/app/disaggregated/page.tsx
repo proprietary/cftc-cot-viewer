@@ -9,7 +9,7 @@ import { SVGRenderer, CanvasRenderer } from 'echarts/renderers';
 import { useRouter } from 'next/navigation';
 import { useSearchParams, usePathname } from 'next/navigation';
 
-import { CachingCFTCApi, DateRangeRequest, CFTCReportType, ContractListRequest, CommodityContractKind } from '@/cftc_api';
+import { CachingCFTCApi, CFTCReportType, ContractListRequest, CommodityContractKind } from '@/cftc_api';
 
 export default function Disaggregated() {
     const [cftcApi, setCftcApi] = React.useState<CachingCFTCApi>();

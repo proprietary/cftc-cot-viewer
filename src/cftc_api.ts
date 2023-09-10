@@ -1,4 +1,5 @@
 import { daysDiff, iso8601StringWithNoTimezoneOffset, plusDays } from "./util";
+import { ISocrataCOTReport, IFinancialFuturesCOTReport, IDisaggregatedFuturesCOTReport, ILegacyFuturesCOTReport, IAnyCOTReportType } from "./socrata_cot_report";
 
 export class CachingCFTCApi {
     // Store underlying data in cache as IndexedDB
@@ -87,8 +88,8 @@ export class CachingCFTCApi {
         }
     }
 
-    public async requestDateRange(request: DateRangeRequest): Promise<any[]> {
-        const cached = await this.getCachedDateRange(request);
+    public async requestDateRange(request: DateRangeRequest): Promise<IAnyCOTReportType[]> {
+        const cached: IAnyCOTReportType[] = await this.getCachedDateRange(request);
         if (cached == null || cached.length === 0) {
             // cache is empty
             const newData = await this.socrataApi.fetchDateRange(request);
@@ -97,7 +98,7 @@ export class CachingCFTCApi {
         }
         // can we use the cache? let's find out...
         let dst = [...cached];
-        dst.sort((a: any, b: any) => a['timestamp'] - b['timestamp']);
+        dst.sort((a: IAnyCOTReportType, b: IAnyCOTReportType) => a['timestamp'] - b['timestamp']);
         const oldest = dst[0];
         const youngest = dst[dst.length - 1];
         // check if the cache is missing older data
@@ -117,9 +118,9 @@ export class CachingCFTCApi {
             } else if (missingOlderData != null && missingOlderData.length > 0) {
                 await this.storeFuturesRecords(request.reportType, missingOlderData);
                 missingOlderData.sort((a: any, b: any) => a['timestamp'] - b['timestamp']);
-                const nowOldest = missingOlderData[0]['timestamp'];
                 dst = dst.concat(missingOlderData);
-                if (nowOldest > request.startDate.getTime()) {
+                const nowOldest = missingOlderData[0];
+                if (nowOldest['timestamp'] > request.startDate.getTime()) {
                     // we reached the beginning of this time series
                     // add "dinosaur" to the stored series so future callers know not to look again
                     this.setDinosaur(request.reportType, nowOldest['id']);
@@ -220,10 +221,10 @@ export class CachingCFTCApi {
         })
     }
 
-    private async getCachedDateRange(request: DateRangeRequest): Promise<any[]> {
+    private async getCachedDateRange(request: DateRangeRequest): Promise<IAnyCOTReportType[]> {
         const db = await this.dbHandle;
         return new Promise((resolve, reject) => {
-            let resultSet: Array<any> = [];
+            let resultSet: Array<IAnyCOTReportType> = [];
             const objectStoreName = this.objectStoreNameFor(request.reportType);
             const tx = db.transaction([objectStoreName], "readonly");
             const req = tx
@@ -253,7 +254,7 @@ export class CachingCFTCApi {
         });
     }
 
-    private async storeFuturesRecords(reportType: CFTCReportType, payload: any[]): Promise<void> {
+    private async storeFuturesRecords(reportType: CFTCReportType, payload: IAnyCOTReportType[]): Promise<void> {
         const db = await this.dbHandle;
         const objectStoreName = this.objectStoreNameFor(reportType);
         return new Promise((resolve, reject) => {
@@ -262,10 +263,14 @@ export class CachingCFTCApi {
                 return;
             }
             const tx = db.transaction([objectStoreName], "readwrite");
+            tx.onerror = (ev) => {
+                const e = (ev.target as IDBTransaction).error;
+                reject(e);
+            }
             const objectStore = tx.objectStore(objectStoreName);
             for (const record of payload) {
                 // validate that it was postprocessed
-                if (!Object.hasOwn(record, 'timestamp')) {
+                if (record == null || !record.hasOwnProperty('timestamp')) {
                     reject(new Error('futures report item was not preprocessed'));
                 }
                 const txReq = objectStore.put(record);
@@ -412,7 +417,7 @@ export interface CommodityContractKind {
 class SocrataApi {
     private appToken: string = '';
 
-    public async fetchDateRange(request: DateRangeRequest): Promise<any[]> {
+    public async fetchDateRange(request: DateRangeRequest): Promise<IAnyCOTReportType[]> {
         /* 
         curl -X GET -G 'https://publicreporting.cftc.gov/resource/gpe5-46if.json' \
         --data-urlencode "\$limit=1000" \
@@ -432,7 +437,7 @@ class SocrataApi {
         } else {
             throw new Error('unreachable!');
         }
-        let dst: any[] = [];
+        let dst: IAnyCOTReportType[] = [];
         let offset = 0;
         let limit = 10000;
         let got = 0;
@@ -452,7 +457,7 @@ class SocrataApi {
             if (resp.status !== 200) {
                 throw new Error(await resp.text());
             }
-            let j: any[] = await resp.json();
+            let j: IAnyCOTReportType[] = await resp.json();
             got = j.length;
             offset += got;
             dst = dst.concat(j);
@@ -551,7 +556,7 @@ class SocrataApi {
         return dst;
     }
 
-    private static postprocessSocrataApiRecords(payload: any[]): any[] {
+    private static postprocessSocrataApiRecords(payload: any[]): IAnyCOTReportType[] {
         return payload.map((record: any) => {
             // add an integer UNIX timestamp for convenience
             record['timestamp'] = Date.parse(record['report_date_as_yyyy_mm_dd']);
