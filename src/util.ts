@@ -1,4 +1,5 @@
-import { AssertionError } from "assert";
+import { useState, useEffect } from 'react';
+import { LibhackCustomError } from './libhack_custom_error';
 
 export function std(arr: Array<number>, fromIdx: number | undefined, lookback: number | undefined): number {
     if (fromIdx == null || fromIdx > arr.length || fromIdx < 0) {
@@ -81,7 +82,7 @@ export function rollingZscore2(arr: Array<number>, lookback: number | undefined)
     return arr.map((n: number, idx: number, thisArr: number[]): number => {
         const a = n - rollingMean_[idx];
         const b = rollingStd_[idx];
-        return b > 0 ? a/b : 0.;
+        return b > 0 ? a / b : 0.;
     });
 }
 
@@ -105,6 +106,53 @@ export function daysDiff(a: Date, b: Date): number {
 export function plusDays(d: Date, nDays: number): Date {
     let dst = new Date(d.getTime());
     const dayMillis = 1000 * 60 * 60 * 24;
-    dst.setTime(dst.getTime() + nDays*dayMillis);
+    dst.setTime(dst.getTime() + nDays * dayMillis);
     return dst;
+}
+
+interface ViewportDimensions {
+    width: number,
+    height: number,
+}
+
+function getViewportDimensions(): ViewportDimensions {
+    const { innerWidth: width, innerHeight: height } = window;
+    return { width, height };
+}
+
+export function useViewportDimensions() {
+    const [viewportDimensions, setViewportDimensions] = useState(getViewportDimensions());
+    useEffect(() => {
+        function handleResize() {
+            setViewportDimensions(getViewportDimensions());
+        }
+        window.addEventListener('resize', handleResize);
+        return () => {
+            window.removeEventListener('resize', handleResize);
+        };
+    }, []);
+    return viewportDimensions;
+}
+
+// common device resolutions (px)
+export const SCREEN_SMALL = 640;
+export const SCREEN_MEDIUM = 768;
+export const SCREEN_LARGE = 1024;
+export const SCREEN_XLARGE = 1280;
+export const SCREEN_2XLARGE = 1536;
+
+export class LibhackAssertionError extends LibhackCustomError {
+    constructor(message?: string) {
+        super(message);
+    }
+}
+
+export function LHAssert(pred: boolean, message?: string): void {
+    if (process.env.NODE_ENV !== 'production') {
+        // TODO(zds): ensure this code doesn't show up in production build
+
+        if (pred === false) {
+            throw new LibhackAssertionError(message);
+        }
+    }
 }

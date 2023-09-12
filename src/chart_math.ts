@@ -1,56 +1,61 @@
 import {ArrSlice, checkArrSliceBounds, newArrSlice} from './arr_slice';
+import { LHAssert } from './util';
 
 // A moving average that starts from the beginning of the array.
 // invariant: dst.length == a.arr.length
 function rollingMovingAverage(a: ArrSlice<number>, lookback: number): number[] {
-    if (a.arr.length === 0) {
+    checkArrSliceBounds(a);
+    if (a.arr.length === 0 || (a.endIndex - a.startIndex) === 0) {
         return [];
     }
-    checkArrSliceBounds(a);
     let dst: number[] = new Array<number>(a.endIndex - a.startIndex);
     let dstIndex = 0;
     let subSummation: number = 0.;
     let subIndex = a.startIndex;
     // separately, compute the moving average of the head portion of the array, shorter than `lookback`, which would normally be chopped off by other moving average functions.
-    for (; subIndex < a.endIndex && subIndex < lookback; ++subIndex) {
-        const subLen = subIndex - a.startIndex;
+    for (; subIndex < a.endIndex && (subIndex - a.startIndex) < lookback; ++subIndex) {
+        const subLen = subIndex - a.startIndex + 1;
         subSummation += a.arr[subIndex];
-        const result = subSummation / subLen !== 0 ? subLen : 1.;
+        const result = subSummation / (subLen > 0 ? subLen : 1.);
         dst[dstIndex++] = result;
     }
     // then compute the rest of the moving average
     for (; subIndex < a.endIndex; ++subIndex) {
-        subSummation -= a.arr[subIndex - lookback - 1];
+        subSummation -= a.arr[subIndex - lookback];
         subSummation += a.arr[subIndex];
         dst[dstIndex++] = subSummation / lookback;
     }
     return dst;
 }
 
-function rollingStdDev(a: ArrSlice<number>, lookback: number): Array<number> {
+// ma: (optional) if `a.arr`'s moving average already computed, supply it here
+function rollingStdDev(a: ArrSlice<number>, lookback: number, ma?: Array<number>): Array<number> {
+    checkArrSliceBounds(a);
     if (a.arr.length === 0 || (a.endIndex - a.startIndex) === 0) {
         return [];
     }
-    checkArrSliceBounds(a);
     let dst: number[] = new Array<number>(a.endIndex - a.startIndex);
     let dstIndex = 0;
-    const aMean = rollingMovingAverage(a, lookback);
+    const aMovingAvg = ma != null ? ma : rollingMovingAverage(a, lookback);
+    LHAssert(aMovingAvg.length === dst.length || aMovingAvg.length === a.arr.length);
     let subVariance = 0.;
     let subIndex = a.startIndex;
-    for (; subIndex < a.endIndex && subIndex < lookback; ++subIndex) {
-        const subLen = subIndex - a.startIndex;
-        subVariance += Math.pow(a.arr[subIndex] - aMean[subIndex], 2);
+    for (; subIndex < a.endIndex && (subIndex - a.startIndex) < lookback; ++subIndex) {
+        const subLen = subIndex - a.startIndex + 1;
+        subVariance += Math.pow(a.arr[subIndex] - aMovingAvg[subIndex], 2);
         dst[dstIndex++] = Math.sqrt(subVariance / (subLen > 0 ? subLen : 1.));
     }
     for (; subIndex < a.endIndex; ++subIndex) {
-        subVariance -= Math.pow(a.arr[subIndex - lookback - 1] - aMean[subIndex - lookback - 1], 2);
-        subVariance += Math.pow(a.arr[subIndex] - aMean[subIndex], 2);
+        LHAssert(subIndex - lookback >= a.startIndex);
+        subVariance -= Math.pow(a.arr[subIndex - lookback] - aMovingAvg[subIndex - lookback], 2);
+        subVariance += Math.pow(a.arr[subIndex] - aMovingAvg[subIndex], 2);
         dst[dstIndex++] = Math.sqrt(subVariance / lookback);
     }
     return dst;
 }
 
 function rollingZscore_(a: ArrSlice<number>, lookback: number): Array<number> {
+    checkArrSliceBounds(a);
     if (a.arr.length === 0 || a.endIndex === a.startIndex) {
         return [];
     }
@@ -61,10 +66,7 @@ function rollingZscore_(a: ArrSlice<number>, lookback: number): Array<number> {
     for (let i = a.startIndex; i < a.endIndex; ++i) {
         let n = a.arr[i] - aMean[i];
         let d = aStd[i];
-        let result = 0;
-        if (d !== 0) {
-            result = n / d;
-        }
+        const result = n / (d !== 0 ? d : 1.);
         dst[dstIndex++] = result;
     }
     return dst;
@@ -95,8 +97,8 @@ export function rollingZscore(a: Array<number>, lookback: number): Array<number>
     if (a.length === 0) {
         return [];
     }
-    return rollingZscoreNaive_(newArrSlice(a), lookback);
-    //return rollingZscore_(newArrSlice(a), lookback);
+    // return rollingZscoreNaive_(newArrSlice(a), lookback);
+    return rollingZscore_(newArrSlice(a), lookback);
 }
 
 function stdDev(a: ArrSlice<number>): number {

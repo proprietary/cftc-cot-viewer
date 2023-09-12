@@ -11,6 +11,7 @@ import { useSearchParams, usePathname } from 'next/navigation';
 import { CachingCFTCApi, ContractListRequest, CFTCReportType, CommodityContractKind } from '@/cftc_api';
 import { IFinancialFuturesCOTReport } from '@/socrata_cot_report';
 import { rollingZscore } from '@/chart_math';
+import { SCREEN_LARGE, SCREEN_MEDIUM, SCREEN_SMALL, useViewportDimensions } from '@/util';
 
 echarts.use([TitleComponent, LineChart, TooltipComponent, ToolboxComponent, DataZoomComponent, LegendComponent, GridComponent, BarChart, SVGRenderer, CanvasRenderer]);
 
@@ -103,8 +104,12 @@ function ZscoredLineChart({ reports, loading }: { reports: IFinancialFuturesCOTR
   nonRpts = rollingZscore(nonRpts, zsLookback);
   const dates = reports.map(x => new Date(x.timestamp).toLocaleDateString());
   const echartsOption = {
-    tooltip: {},
-    title: {},
+    tooltip: {
+      trigger: 'axis',
+    },
+    title: {
+      text: reports.length > 0 ? reports[0].contract_market_name : '',
+    },
     legend: {},
     grid: {},
     toolbox: {
@@ -138,31 +143,26 @@ function ZscoredLineChart({ reports, loading }: { reports: IFinancialFuturesCOTR
       {
         name: 'Dealers',
         type: 'line',
-        stack: 'Total',
         data: dealers,
       },
       {
         name: 'Asset Managers',
         type: 'line',
-        stack: 'Total',
         data: assetMgrs,
       },
       {
         name: 'Leveraged Funds',
         type: 'line',
-        stack: 'Total',
         data: levFunds,
       },
       {
         name: 'Other Reportables',
         type: 'line',
-        stack: 'Total',
         data: otherRpts,
       },
       {
         name: 'Non-Reportables',
         type: 'line',
-        stack: 'Total',
         data: nonRpts,
       },
     ],
@@ -172,19 +172,39 @@ function ZscoredLineChart({ reports, loading }: { reports: IFinancialFuturesCOTR
     console.log(n);
     setZsLookback(n);
   };
+  const echartsRef = React.useRef<ReactEChartsCore | null>(null);
+  // compute breakpoints for the ECharts instance; making it responsive
+  const viewportDimensions = useViewportDimensions();
+  let { height: eChartsHeight, width: eChartsWidth } = viewportDimensions;
+  if (viewportDimensions.width >= SCREEN_SMALL) {
+    eChartsWidth = viewportDimensions.width * 0.99;
+    eChartsHeight = viewportDimensions.height * 0.99;
+  }
+  if (viewportDimensions.width >= SCREEN_LARGE) {
+    eChartsWidth = viewportDimensions.width * 0.8;
+    eChartsHeight = viewportDimensions.height * 0.8;
+  }
+
   return (
     <div className="my-5">
       <div>
         <label>
-          Lookback (number of weeks to use to standardize positioning)
-          <input type="range" min={5} max={500} value={zsLookback} onChange={handleChangeZsLookback} />
+          Lookback (number of weeks to use to standardize positioning): <strong>{zsLookback} weeks</strong>
+          <input type="range" min={2} max={100} step={1} value={zsLookback} onChange={handleChangeZsLookback} />
         </label>
       </div>
-      <ReactEChartsCore echarts={echarts}
-        showLoading={loading || reports.length === 0}
-        option={echartsOption}
-        theme={"dark"}
-        style={{ height: '1000px', width: '90vw' }} />
+      <div className="w-full">
+        <ReactEChartsCore
+          echarts={echarts}
+          ref={(ref) => { echartsRef.current = ref; }}
+          showLoading={loading || reports.length === 0}
+          option={echartsOption}
+          theme={"dark"}
+          style={{
+            height: viewportDimensions.height  * .8,
+            width: viewportDimensions.width < 640 ? viewportDimensions.width * 1.0 : viewportDimensions.width * 0.9,
+          }} />
+      </div>
     </div>
   );
 }
