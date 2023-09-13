@@ -61,15 +61,12 @@ export default function StandardizedCotOscillator<RptType extends IFinancialFutu
         xAxisDates,
         columns,
         title = '',
-        yAxisLabel = '',
-        standardized = true,
+        yAxisLabel = 'Net Positioning',
         loading = false,
     }: {
         xAxisDates: Date[],
         columns: ITraderCategoryColumn,
         title?: string,
-        // whether or not to use zscored index
-        standardized?: boolean,
         loading?: boolean,
         yAxisLabel?: string,
         // priceData: [{dt: Date, price: number}],
@@ -77,15 +74,18 @@ export default function StandardizedCotOscillator<RptType extends IFinancialFutu
 ) {
     const echartsRef = React.useRef<EChartsReactCore | null>(null);
     let legendSelected = React.useRef<{ [name: string]: boolean } | null>(null);
+    let rememberedDataZoom = React.useRef<[number, number] | null>(null);
+    const [standardized, setStandardized] = React.useState<boolean>(true);
 
-    const zscoreLookback = React.useRef<number>(defaultZscoreLookback);
-    const zscoreLookbackDOMLabel = React.useRef<HTMLSpanElement | null>();
-    const zscoredSeries = React.useCallback(() => {
+    //const zscoreLookback = React.useRef<number>(defaultZscoreLookback);
+    //const zscoreLookbackDOMLabel = React.useRef<HTMLSpanElement | null>();
+    const [zscoreLookback, setZscoreLookback] = React.useState<number>(defaultZscoreLookback);
+    const zscoredSeries = React.useCallback((zs: number, standardized: boolean) => {
         let series: any = [];
         for (const traderCategoryName of Object.keys(columns)) {
             let data: number[] = [];
             if (standardized) {
-                data = rollingZscore(columns[traderCategoryName].data, zscoreLookback.current);
+                data = rollingZscore(columns[traderCategoryName].data, zs);
             } else {
                 data = [...columns[traderCategoryName].data];
             }
@@ -100,9 +100,15 @@ export default function StandardizedCotOscillator<RptType extends IFinancialFutu
             });
         }
         return series;
-    }, [zscoreLookback, columns, standardized]);
+    }, [columns]);
 
     const genEchartsOption = React.useCallback(() => {
+        let dataZoomInner: { start?: number, end?: number } = {};
+        if (rememberedDataZoom.current != null) {
+            const [start, end] = rememberedDataZoom.current;
+            dataZoomInner.start = start;
+            dataZoomInner.end = end;
+        }
         return {
             aria: {
                 enabled: true,
@@ -128,9 +134,10 @@ export default function StandardizedCotOscillator<RptType extends IFinancialFutu
                     type: 'slider',
                     filterMode: 'filter',
                     start: 100 * Math.max(0, xAxisDates.length - defaultWeeksZoom) / xAxisDates.length,
+                    ...dataZoomInner,
                 }
             ],
-            series: zscoredSeries(),
+            series: zscoredSeries(zscoreLookback, standardized),
             xAxis: [
                 {
                     data: xAxisDates.map(x => x.toLocaleDateString()),
@@ -141,7 +148,7 @@ export default function StandardizedCotOscillator<RptType extends IFinancialFutu
                 {
                     id: 'cot-net-positioning-axis',
                     type: 'value',
-                    name: `Net Positioning (z-score, ${zscoreLookback.current}w lookback)`,
+                    name: `${yAxisLabel}`,
                     nameRotate: '90',
                     nameTextStyle: {
                         verticalAlign: 'middle',
@@ -156,27 +163,42 @@ export default function StandardizedCotOscillator<RptType extends IFinancialFutu
                 textStyle: { fontSize: 12 },
             },
         };
-    }, [xAxisDates, columns]);
+    }, [xAxisDates, columns, yAxisLabel, rememberedDataZoom, zscoreLookback, standardized]);
 
     const handleChangeZsLookback = (ev: React.ChangeEvent<HTMLInputElement>) => {
         const n = parseInt(ev.target.value);
-        zscoreLookback.current = n;
-        echartsRef.current?.getEchartsInstance().setOption({
-            series: zscoredSeries(),
-            yAxis: [
-                {
-                    id: 'cot-net-positioning-axis',
-                    name: `Net Positioning (z-score ${n}w lookback)`,
-                },
-            ],
-        });
-        if (zscoreLookbackDOMLabel.current) {
-            zscoreLookbackDOMLabel.current.textContent = n.toString();
-        }
+        // zscoreLookback.current = n;
+        setZscoreLookback(n);
+        // echartsRef.current?.getEchartsInstance().setOption({
+        //     series: zscoredSeries(n, standardized),
+        //     yAxis: [
+        //         {
+        //             id: 'cot-net-positioning-axis',
+        //             name: `${yAxisLabel} (z-score ${n}w lookback)`,
+        //         },
+        //     ],
+        // });
+        // if (zscoreLookbackDOMLabel.current) {
+        //     zscoreLookbackDOMLabel.current.textContent = n.toString();
+        // }
     };
 
-    // preserve legend selections
+    const handleSetStandardized = (ev: React.ChangeEvent<HTMLInputElement>) => {
+        const b = ev.target.checked;
+        setStandardized(b);
+        // echartsRef.current?.getEchartsInstance().setOption({
+        //     series: zscoredSeries(zscoreLookback, b),
+        //     yAxis: [
+        //         {
+        //             id: 'cot-net-positioning-axis',
+        //             name: b ? `${yAxisLabel} (Net Long open interest)` : `${yAxisLabel} (z-score ${zscoreLookback}w lookback)`,
+        //         },
+        //     ],
+        // });
+    }
+
     React.useEffect(() => {
+        // preserve legend selections
         if (legendSelected.current != null) {
             const ec = echartsRef.current?.getEchartsInstance();
             for (const [legendItemName, isSelected] of Object.entries(legendSelected.current)) {
@@ -188,7 +210,14 @@ export default function StandardizedCotOscillator<RptType extends IFinancialFutu
                     });
             }
         }
-    }, [columns, xAxisDates, legendSelected]);
+        // set data zoom initially
+        if (rememberedDataZoom.current === null && xAxisDates != null && xAxisDates.length > 0) {
+            rememberedDataZoom.current = [
+                100. * Math.max(0, xAxisDates.length - defaultWeeksZoom) / xAxisDates.length,
+                100.
+            ];
+        }
+    }, [columns, xAxisDates, legendSelected, rememberedDataZoom, standardized, zscoreLookback]);
 
     // compute breakpoints for the ECharts instance; making it responsive
     const viewportDimensions = useViewportDimensions();
@@ -207,12 +236,22 @@ export default function StandardizedCotOscillator<RptType extends IFinancialFutu
             <div>
                 <label>
                     Lookback (number of weeks to use to standardize positioning):
-                    <strong><span ref={(ref) => { zscoreLookbackDOMLabel.current = ref; }}>{zscoreLookback.current.toString() ?? ''}</span> weeks</strong>
+                    <strong>
+                        {zscoreLookback}
+                        {/*<span ref={(ref) => { zscoreLookbackDOMLabel.current = ref; }}>
+                            {zscoreLookback.current.toString() ?? ''}
+                        </span> weeks */}
+                    </strong>
                     <input
                         type="range"
                         className="mx-2"
                         min={2} max={100} step={1}
                         onChange={handleChangeZsLookback} />
+                </label>
+            </div>
+            <div className="block my-5">
+                <label>
+                    Standardized? <input type="checkbox" onChange={handleSetStandardized} checked={standardized} />
                 </label>
             </div>
             <div className="w-full">
@@ -223,6 +262,9 @@ export default function StandardizedCotOscillator<RptType extends IFinancialFutu
                     option={genEchartsOption()}
                     theme={"dark"}
                     onEvents={{
+                        'datazoom': (ev: any) => {
+                            rememberedDataZoom.current = [ev.start, ev.end];
+                        },
                         'legendselectchanged': (ev: any) => {
                             legendSelected.current = ev.selected;
                         },
