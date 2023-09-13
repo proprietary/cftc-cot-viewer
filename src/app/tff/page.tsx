@@ -109,13 +109,75 @@ function ZscoredLineChart({ reports }: { reports: readonly IFinancialFuturesCOTR
 
   const dates = reports.map(x => new Date(x.timestamp).toLocaleDateString());
 
+  const generateEchartsData = React.useCallback(() => {
+    return {
+      series: [
+        {
+          id: 'dealers',
+          name: 'Dealers',
+          type: 'bar',
+          // smooth: true, // for type=line
+          data: dealers,
+          tooltip: { valueFormatter: tooltipFormatter },
+        },
+        {
+          id: 'assetMgrs',
+          name: 'Asset Managers',
+          type: 'bar',
+          // smooth: true, // for type=line
+          data: assetMgrs,
+          tooltip: { valueFormatter: tooltipFormatter },
+        },
+        {
+          id: 'levFunds',
+          name: 'Leveraged Funds',
+          type: 'bar',
+          // smooth: true, // for type=line
+          data: levFunds,
+          tooltip: { valueFormatter: tooltipFormatter },
+        },
+        {
+          id: 'otherRpts',
+          name: 'Other Reportables',
+          type: 'bar',
+          // smooth: true, // for type=line
+          data: otherRpts,
+          tooltip: { valueFormatter: tooltipFormatter },
+        },
+        {
+          id: 'nonRpts',
+          name: 'Non-Reportables',
+          type: 'bar',
+          // smooth: true, // for type=line
+          data: nonRpts,
+          tooltip: {
+            valueFormatter: tooltipFormatter,
+          },
+        },
+      ],
+      xAxis: [
+        {
+          data: dates,
+          type: 'category',
+        },
+      ],
+      yAxis: [
+        {
+          type: 'value',
+          name: `Net Positioning (z-score, ${zsLookback}w lookback)`,
+        }
+      ],
+      title: {
+        text: reports.length > 0 ? reports[0].contract_market_name : '',
+        textStyle: { fontSize: 12 },
+      },
+
+    };
+  }, [nonRpts, otherRpts, levFunds, dealers, assetMgrs, reports, dates]);
+
   const generateEchartsOption = React.useCallback(() => ({
     tooltip: {
       trigger: 'axis',
-    },
-    title: {
-      text: reports.length > 0 ? reports[0].contract_market_name : '',
-      textStyle: { fontSize: 12 },
     },
     legend: {
       padding: 5,
@@ -125,72 +187,20 @@ function ZscoredLineChart({ reports }: { reports: readonly IFinancialFuturesCOTR
     toolbox: {
       show: true,
       feature: {
-        dataZoom: {
-          show: true,
-        },
         saveAsImage: {},
-        restore: {},
-      }
+        // TODO(zds): implement CSV export with `dataView`
+      },
     },
     dataZoom: [
       {
+        id: 'cot-horizontal-zoom',
         type: 'slider',
         filterMode: 'filter',
         // start: 100 * Math.max(0, reports.length - defaultWeeksZoom) / reports.length,
       }
     ],
-    xAxis: [
-      {
-        data: dates,
-        type: 'category',
-      },
-    ],
-    yAxis: [
-      {
-        type: 'value',
-        name: 'Net Positioning (z-score)',
-      }
-    ],
-    series: [
-      {
-        name: 'Dealers',
-        type: 'bar',
-        // smooth: true, // for type=line
-        data: dealers,
-        tooltip: { valueFormatter: tooltipFormatter },
-      },
-      {
-        name: 'Asset Managers',
-        type: 'bar',
-        // smooth: true, // for type=line
-        data: assetMgrs,
-        tooltip: { valueFormatter: tooltipFormatter },
-      },
-      {
-        name: 'Leveraged Funds',
-        type: 'bar',
-        // smooth: true, // for type=line
-        data: levFunds,
-        tooltip: { valueFormatter: tooltipFormatter },
-      },
-      {
-        name: 'Other Reportables',
-        type: 'bar',
-        // smooth: true, // for type=line
-        data: otherRpts,
-        tooltip: { valueFormatter: tooltipFormatter },
-      },
-      {
-        name: 'Non-Reportables',
-        type: 'bar',
-        // smooth: true, // for type=line
-        data: nonRpts,
-        tooltip: {
-          valueFormatter: tooltipFormatter,
-        },
-      },
-    ],
-  }), [reports, dealers, assetMgrs, levFunds, otherRpts, nonRpts]);
+    ...generateEchartsData(),
+  }), [generateEchartsData]);
 
   const handleChangeZsLookback = (ev: React.ChangeEvent<HTMLInputElement>) => {
     const n = parseInt(ev.target.value);
@@ -217,16 +227,19 @@ function ZscoredLineChart({ reports }: { reports: readonly IFinancialFuturesCOTR
     if (reports === prevReports?.reports) {
       return;
     }
-    console.info('reports change detected; effect triggered');
-    let opt = generateEchartsOption();
     let [start, end] = sliderZoom.current;
     if (prevReports?.reportsLen != reports.length || (start === 0 && end === 100)) {
       start = 100 * Math.max(0, reports.length - defaultWeeksZoom) / reports.length;
       sliderZoom.current = [start, end];
     }
-    (opt.dataZoom[0] as any) = { ...opt.dataZoom[0], start, end };
-    echartsOptionRef.current = opt;
-    echartsRef.current?.getEchartsInstance().setOption(opt);
+    echartsRef.current?.getEchartsInstance().setOption({
+      ...generateEchartsData(),
+      dataZoom: {
+        id: 'cot-horizontal-zoom',
+        start,
+        end,
+      },
+    }, false);
     if (legendSelected.current != null) {
       for (const [legendName, toggled] of Object.entries(legendSelected.current)) {
         if (toggled === false)
@@ -239,11 +252,17 @@ function ZscoredLineChart({ reports }: { reports: readonly IFinancialFuturesCOTR
     }
   }, [reports, prevReports]);
   React.useEffect(() => {
-    let opt = generateEchartsOption();
     const [start, end] = sliderZoom.current;
-    (opt.dataZoom[0] as any) = { ...opt.dataZoom[0], start, end };
-    echartsOptionRef.current = opt;
-    echartsRef.current?.getEchartsInstance().setOption(opt);
+    echartsRef.current?.getEchartsInstance().setOption({
+      ...generateEchartsData(),
+      dataZoom: [
+        {
+          id: 'cot-horizontal-zoom',
+          start,
+          end,
+        },
+      ],
+    }, false);
     if (legendSelected.current != null) {
       for (const [legendName, toggled] of Object.entries(legendSelected.current)) {
         if (toggled === false)
