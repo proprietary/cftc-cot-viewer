@@ -94,7 +94,7 @@ function TradersInFinancialFutures({ reports, loading }: { reports: IFinancialFu
 const tooltipFormatter = (zscore: number) => `${zscore.toFixed(5)} σ`;
 const defaultWeeksZoom = 50; // default number of weeks the zoom slider should have in width
 
-function ZscoredLineChart({ reports, loading }: { reports: readonly IFinancialFuturesCOTReport[], loading: boolean }) {
+function ZscoredLineChart({ reports }: { reports: readonly IFinancialFuturesCOTReport[] }) {
   const [zsLookback, setZsLookback] = React.useState<number>(50);
   let dealers = reports.map(x => (x.dealer_positions_long_all - x.dealer_positions_short_all) / x.open_interest_all);
   let assetMgrs = reports.map(x => (x.asset_mgr_positions_long - x.asset_mgr_positions_short) / x.open_interest_all);
@@ -192,6 +192,46 @@ function ZscoredLineChart({ reports, loading }: { reports: readonly IFinancialFu
     ],
   }), [reports, dealers, assetMgrs, levFunds, otherRpts, nonRpts]);
 
+  const generateSeries = React.useCallback(() => ([
+    {
+      name: 'Dealers',
+      type: 'line',
+      data: dealers,
+      smooth: true,
+      tooltip: { valueFormatter: tooltipFormatter },
+    },
+    {
+      name: 'Asset Managers',
+      type: 'line',
+      data: assetMgrs,
+      smooth: true,
+      tooltip: { valueFormatter: tooltipFormatter },
+    },
+    {
+      name: 'Leveraged Funds',
+      type: 'line',
+      data: levFunds,
+      smooth: true,
+      tooltip: { valueFormatter: tooltipFormatter },
+    },
+    {
+      name: 'Other Reportables',
+      type: 'line',
+      data: otherRpts,
+      smooth: true,
+      tooltip: { valueFormatter: tooltipFormatter },
+    },
+    {
+      name: 'Non-Reportables',
+      type: 'line',
+      data: nonRpts,
+      smooth: true,
+      tooltip: {
+        valueFormatter: tooltipFormatter,
+      },
+    },
+  ]), [dealers, levFunds, otherRpts, nonRpts]);
+
   const handleChangeZsLookback = (ev: React.ChangeEvent<HTMLInputElement>) => {
     const n = parseInt(ev.target.value);
     setZsLookback(n);
@@ -209,24 +249,42 @@ function ZscoredLineChart({ reports, loading }: { reports: readonly IFinancialFu
     eChartsHeight = viewportDimensions.height * 0.8;
   }
 
-  const prevReports = usePrevious({ reports });
+  const prevReports = usePrevious({ reports, reportsLen: reports.length });
   const echartsOptionRef = React.useRef<any>(generateEchartsOption());
+  const legendSelected = React.useRef<any>(null);
   const sliderZoom = React.useRef<[number, number]>([0, 100]);
   React.useEffect(() => {
+    if (reports === prevReports?.reports) {
+      return;
+    }
+    console.info('reports change detected; effect triggered');
     let opt = generateEchartsOption();
-    let [ start, end ] = sliderZoom.current;
-    if (prevReports?.reports.length != reports.length || (start === 0 && end === 100)) {
+    let [start, end] = sliderZoom.current;
+    if (prevReports?.reportsLen != reports.length || (start === 0 && end === 100)) {
       start = 100 * Math.max(0, reports.length - defaultWeeksZoom) / reports.length;
       sliderZoom.current = [start, end];
     }
-    (opt.dataZoom[0] as any) = {...opt.dataZoom[0], start, end};
+    (opt.dataZoom[0] as any) = { ...opt.dataZoom[0], start, end };
+    echartsOptionRef.current = opt;
     echartsRef.current?.getEchartsInstance().setOption(opt);
   }, [reports, prevReports]);
   React.useEffect(() => {
     let opt = generateEchartsOption();
-    const [ start, end ] = sliderZoom.current;
-    (opt.dataZoom[0] as any) = {...opt.dataZoom[0], start, end };
+    const [start, end] = sliderZoom.current;
+    (opt.dataZoom[0] as any) = { ...opt.dataZoom[0], start, end };
+    echartsOptionRef.current = opt;
     echartsRef.current?.getEchartsInstance().setOption(opt);
+    console.log(legendSelected);
+    if (legendSelected.current != null) {
+      for (const [legendName, toggled] of Object.entries(legendSelected.current)) {
+        if (toggled === false)
+          echartsRef.current?.getEchartsInstance().dispatchAction({
+            type: 'legendToggleSelect',
+            name: legendName,
+            selected: legendSelected.current,
+          });
+      }
+    }
   }, [zsLookback]);
 
 
@@ -242,16 +300,19 @@ function ZscoredLineChart({ reports, loading }: { reports: readonly IFinancialFu
         {echartsOptionRef.current && (<ReactEChartsCore
           echarts={echarts}
           ref={(ref) => { echartsRef.current = ref; }}
-          showLoading={loading || reports.length === 0}
+          showLoading={reports.length === 0}
           option={echartsOptionRef.current}
           theme={"dark"}
           onEvents={{
             'datazoom': (ev: any) => {
               sliderZoom.current = [ev.start, ev.end];
-            }
+            },
+            'legendselectchanged': (ev: any) => {
+              legendSelected.current = ev.selected;
+            },
           }}
           style={{
-            height: viewportDimensions.height  * .8,
+            height: viewportDimensions.height * .8,
             width: viewportDimensions.width < 640 ? viewportDimensions.width * 1.0 : viewportDimensions.width * 0.9,
           }} />)}
       </div>
@@ -345,7 +406,7 @@ export default function Tff() {
             ))}
         </select>
         <TradersInFinancialFutures reports={tffData} loading={loading} />
-        <ZscoredLineChart reports={tffData} loading={false} />
+        <ZscoredLineChart reports={tffData} />
       </main>
     </>
   );
