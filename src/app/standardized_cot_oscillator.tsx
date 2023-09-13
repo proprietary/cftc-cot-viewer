@@ -208,13 +208,13 @@ export default function StandardizedCotOscillator<RptType extends IFinancialFutu
 
     return (
         <div className="my-5">
-            <div className="block my-5">
+            <div className="block my-2">
                 <label>
                     Standardized? <input type="checkbox" onChange={handleSetStandardized} checked={standardized} />
                 </label>
             </div>
 
-            <div className={'block my-5' + (standardized ? '' : ' hidden')}>
+            <div className={'block my-1' + (standardized ? '' : ' hidden')}>
                 <label>
                     Lookback (number of weeks to use to standardize positioning):
                     <strong>

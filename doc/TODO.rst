@@ -14,7 +14,6 @@ Features
 --------
 
 - [ ] Create a tree of navigation links rather than the ``<select>`` to choose a commodity.
-- [ ] Add z-score'd net positioning charts—see which positioning is twitchiest.
 - [ ] Plot fast/slow/medium positioning.
 - [ ] Add support for Legacy COT.
 - [ ] Sort the ``<select>`` sections by open interest.
