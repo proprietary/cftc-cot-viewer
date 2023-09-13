@@ -1,9 +1,10 @@
 'use client';
 
 import React, { useCallback } from 'react';
+import cloneDeep from 'lodash-es/cloneDeep';
 import ReactEChartsCore from 'echarts-for-react/lib/core';
 import * as echarts from 'echarts/core';
-import { TitleComponent, GridComponent, LegendComponent, TooltipComponent, ToolboxComponent, DataZoomComponent } from 'echarts/components';
+import { TitleComponent, GridComponent, LegendComponent, TooltipComponent, ToolboxComponent, DataZoomComponent, VisualMapComponent, TimelineComponent } from 'echarts/components';
 import { BarChart, LineChart } from 'echarts/charts';
 import { SVGRenderer, CanvasRenderer } from 'echarts/renderers';
 import { useRouter } from 'next/navigation';
@@ -11,9 +12,9 @@ import { useSearchParams, usePathname } from 'next/navigation';
 import { CachingCFTCApi, ContractListRequest, CFTCReportType, CommodityContractKind } from '@/cftc_api';
 import { IFinancialFuturesCOTReport } from '@/socrata_cot_report';
 import { rollingZscore } from '@/chart_math';
-import { SCREEN_LARGE, SCREEN_MEDIUM, SCREEN_SMALL, useViewportDimensions } from '@/util';
+import { SCREEN_LARGE, SCREEN_MEDIUM, SCREEN_SMALL, useViewportDimensions, usePrevious } from '@/util';
 
-echarts.use([TitleComponent, LineChart, TooltipComponent, ToolboxComponent, DataZoomComponent, LegendComponent, GridComponent, BarChart, SVGRenderer, CanvasRenderer]);
+echarts.use([TitleComponent, LineChart, VisualMapComponent, TimelineComponent, TooltipComponent, ToolboxComponent, DataZoomComponent, LegendComponent, GridComponent, BarChart, SVGRenderer, CanvasRenderer]);
 
 type CategoryName = string;
 
@@ -90,7 +91,10 @@ function TradersInFinancialFutures({ reports, loading }: { reports: IFinancialFu
   );
 }
 
-function ZscoredLineChart({ reports, loading }: { reports: IFinancialFuturesCOTReport[], loading: boolean }) {
+const tooltipFormatter = (zscore: number) => `${zscore.toFixed(5)} σ`;
+const defaultWeeksZoom = 50; // default number of weeks the zoom slider should have in width
+
+function ZscoredLineChart({ reports, loading }: { reports: readonly IFinancialFuturesCOTReport[], loading: boolean }) {
   const [zsLookback, setZsLookback] = React.useState<number>(50);
   let dealers = reports.map(x => (x.dealer_positions_long_all - x.dealer_positions_short_all) / x.open_interest_all);
   let assetMgrs = reports.map(x => (x.asset_mgr_positions_long - x.asset_mgr_positions_short) / x.open_interest_all);
@@ -102,35 +106,43 @@ function ZscoredLineChart({ reports, loading }: { reports: IFinancialFuturesCOTR
   levFunds = rollingZscore(levFunds, zsLookback);
   otherRpts = rollingZscore(otherRpts, zsLookback);
   nonRpts = rollingZscore(nonRpts, zsLookback);
+
   const dates = reports.map(x => new Date(x.timestamp).toLocaleDateString());
-  const echartsOption = {
+
+  const generateEchartsOption = React.useCallback(() => ({
     tooltip: {
       trigger: 'axis',
     },
     title: {
       text: reports.length > 0 ? reports[0].contract_market_name : '',
+      textStyle: { fontSize: 12 },
     },
-    legend: {},
-    grid: {},
+    legend: {
+      padding: 5,
+    },
+    grid: {
+    },
     toolbox: {
       show: true,
       feature: {
         dataZoom: {
           show: true,
         },
+        saveAsImage: {},
+        restore: {},
       }
     },
     dataZoom: [
       {
         type: 'slider',
         filterMode: 'filter',
-        //startValue: dates[Math.max(0, dates.length - 50)],
+        // start: 100 * Math.max(0, reports.length - defaultWeeksZoom) / reports.length,
       }
     ],
     xAxis: [
       {
-        type: 'category',
         data: dates,
+        type: 'category',
       },
     ],
     yAxis: [
@@ -144,32 +156,44 @@ function ZscoredLineChart({ reports, loading }: { reports: IFinancialFuturesCOTR
         name: 'Dealers',
         type: 'line',
         data: dealers,
+        smooth: true,
+        tooltip: { valueFormatter: tooltipFormatter },
       },
       {
         name: 'Asset Managers',
         type: 'line',
         data: assetMgrs,
+        smooth: true,
+        tooltip: { valueFormatter: tooltipFormatter },
       },
       {
         name: 'Leveraged Funds',
         type: 'line',
         data: levFunds,
+        smooth: true,
+        tooltip: { valueFormatter: tooltipFormatter },
       },
       {
         name: 'Other Reportables',
         type: 'line',
         data: otherRpts,
+        smooth: true,
+        tooltip: { valueFormatter: tooltipFormatter },
       },
       {
         name: 'Non-Reportables',
         type: 'line',
         data: nonRpts,
+        smooth: true,
+        tooltip: {
+          valueFormatter: tooltipFormatter,
+        },
       },
     ],
-  };
+  }), [reports, dealers, assetMgrs, levFunds, otherRpts, nonRpts]);
+
   const handleChangeZsLookback = (ev: React.ChangeEvent<HTMLInputElement>) => {
     const n = parseInt(ev.target.value);
-    console.log(n);
     setZsLookback(n);
   };
   const echartsRef = React.useRef<ReactEChartsCore | null>(null);
@@ -185,6 +209,27 @@ function ZscoredLineChart({ reports, loading }: { reports: IFinancialFuturesCOTR
     eChartsHeight = viewportDimensions.height * 0.8;
   }
 
+  const prevReports = usePrevious({ reports });
+  const echartsOptionRef = React.useRef<any>(generateEchartsOption());
+  const sliderZoom = React.useRef<[number, number]>([0, 100]);
+  React.useEffect(() => {
+    let opt = generateEchartsOption();
+    let [ start, end ] = sliderZoom.current;
+    if (prevReports?.reports.length != reports.length || (start === 0 && end === 100)) {
+      start = 100 * Math.max(0, reports.length - defaultWeeksZoom) / reports.length;
+      sliderZoom.current = [start, end];
+    }
+    (opt.dataZoom[0] as any) = {...opt.dataZoom[0], start, end};
+    echartsRef.current?.getEchartsInstance().setOption(opt);
+  }, [reports, prevReports]);
+  React.useEffect(() => {
+    let opt = generateEchartsOption();
+    const [ start, end ] = sliderZoom.current;
+    (opt.dataZoom[0] as any) = {...opt.dataZoom[0], start, end };
+    echartsRef.current?.getEchartsInstance().setOption(opt);
+  }, [zsLookback]);
+
+
   return (
     <div className="my-5">
       <div>
@@ -194,16 +239,21 @@ function ZscoredLineChart({ reports, loading }: { reports: IFinancialFuturesCOTR
         </label>
       </div>
       <div className="w-full">
-        <ReactEChartsCore
+        {echartsOptionRef.current && (<ReactEChartsCore
           echarts={echarts}
           ref={(ref) => { echartsRef.current = ref; }}
           showLoading={loading || reports.length === 0}
-          option={echartsOption}
+          option={echartsOptionRef.current}
           theme={"dark"}
+          onEvents={{
+            'datazoom': (ev: any) => {
+              sliderZoom.current = [ev.start, ev.end];
+            }
+          }}
           style={{
             height: viewportDimensions.height  * .8,
             width: viewportDimensions.width < 640 ? viewportDimensions.width * 1.0 : viewportDimensions.width * 0.9,
-          }} />
+          }} />)}
       </div>
     </div>
   );

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { LibhackCustomError } from './libhack_custom_error';
 
 export function std(arr: Array<number>, fromIdx: number | undefined, lookback: number | undefined): number {
@@ -156,3 +156,11 @@ export function LHAssert(pred: boolean, message?: string): void {
         }
     }
 }
+
+export const usePrevious = <T extends unknown>(value: T): T | undefined => {
+  const ref = useRef<T>();
+  useEffect(() => {
+    ref.current = value;
+  });
+  return ref.current;
+};
