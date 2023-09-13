@@ -61,6 +61,7 @@ export default function StandardizedCotOscillator<RptType extends IFinancialFutu
         xAxisDates,
         columns,
         title = '',
+        yAxisLabel = '',
         standardized = true,
         loading = false,
     }: {
@@ -70,11 +71,12 @@ export default function StandardizedCotOscillator<RptType extends IFinancialFutu
         // whether or not to use zscored index
         standardized?: boolean,
         loading?: boolean,
+        yAxisLabel?: string,
         // priceData: [{dt: Date, price: number}],
     },
 ) {
     const echartsRef = React.useRef<EChartsReactCore | null>(null);
-    let dataZoomBounds = React.useRef<[number, number]>();
+    let legendSelected = React.useRef<{ [name: string]: boolean } | null>(null);
 
     const zscoreLookback = React.useRef<number>(defaultZscoreLookback);
     const zscoreLookbackDOMLabel = React.useRef<HTMLSpanElement | null>();
@@ -100,14 +102,11 @@ export default function StandardizedCotOscillator<RptType extends IFinancialFutu
         return series;
     }, [zscoreLookback, columns, standardized]);
 
-    const genEchartsOption = () => {
-        // let dataZoomInner: { start?: number, end?: number } = {};
-        // if (dataZoomBounds.current != null) {
-        //     const [start, end] = dataZoomBounds.current;
-        //     dataZoomInner.start = start;
-        //     dataZoomInner.end = end;
-        // }
+    const genEchartsOption = React.useCallback(() => {
         return {
+            aria: {
+                enabled: true,
+            },
             tooltip: {
                 trigger: 'axis',
             },
@@ -128,7 +127,6 @@ export default function StandardizedCotOscillator<RptType extends IFinancialFutu
                     id: 'cot-horizontal-zoom',
                     type: 'slider',
                     filterMode: 'filter',
-                    // ...dataZoomInner,
                     start: 100 * Math.max(0, xAxisDates.length - defaultWeeksZoom) / xAxisDates.length,
                 }
             ],
@@ -141,8 +139,16 @@ export default function StandardizedCotOscillator<RptType extends IFinancialFutu
             ],
             yAxis: [
                 {
+                    id: 'cot-net-positioning-axis',
                     type: 'value',
                     name: `Net Positioning (z-score, ${zscoreLookback.current}w lookback)`,
+                    nameRotate: '90',
+                    nameTextStyle: {
+                        verticalAlign: 'middle',
+                        align: 'center',
+                    },
+                    nameLocation: 'middle',
+                    nameGap: 40,
                 }
             ],
             title: {
@@ -150,19 +156,40 @@ export default function StandardizedCotOscillator<RptType extends IFinancialFutu
                 textStyle: { fontSize: 12 },
             },
         };
-    };
+    }, [xAxisDates, columns]);
 
     const handleChangeZsLookback = (ev: React.ChangeEvent<HTMLInputElement>) => {
         const n = parseInt(ev.target.value);
-        // setZscoreLookback(n);
         zscoreLookback.current = n;
         echartsRef.current?.getEchartsInstance().setOption({
             series: zscoredSeries(),
+            yAxis: [
+                {
+                    id: 'cot-net-positioning-axis',
+                    name: `Net Positioning (z-score ${n}w lookback)`,
+                },
+            ],
         });
         if (zscoreLookbackDOMLabel.current) {
             zscoreLookbackDOMLabel.current.textContent = n.toString();
         }
     };
+
+    // preserve legend selections
+    React.useEffect(() => {
+        if (legendSelected.current != null) {
+            const ec = echartsRef.current?.getEchartsInstance();
+            for (const [legendItemName, isSelected] of Object.entries(legendSelected.current)) {
+                if (!isSelected)
+                    ec?.dispatchAction({
+                        type: 'legendToggleSelect',
+                        name: legendItemName,
+                        selected: legendSelected.current,
+                    });
+            }
+        }
+    }, [columns, xAxisDates, legendSelected]);
+
     // compute breakpoints for the ECharts instance; making it responsive
     const viewportDimensions = useViewportDimensions();
     let { height: eChartsHeight, width: eChartsWidth } = viewportDimensions;
@@ -196,8 +223,8 @@ export default function StandardizedCotOscillator<RptType extends IFinancialFutu
                     option={genEchartsOption()}
                     theme={"dark"}
                     onEvents={{
-                        'datazoom': (ev: any) => {
-                            dataZoomBounds.current = [ev.start, ev.end];
+                        'legendselectchanged': (ev: any) => {
+                            legendSelected.current = ev.selected;
                         },
                     }}
                     style={{
