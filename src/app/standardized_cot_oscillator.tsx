@@ -92,7 +92,11 @@ export default function StandardizedCotOscillator<RptType extends IFinancialFutu
                 data,
                 type: 'bar',
                 tooltip: {
-                    valueFormatter: standardized ? ((x: any) => x) : zscoreTooltipFormatter,
+                    valueFormatter: (value: string | number): string => {
+                        if (standardized && typeof value === 'number')
+                            return `${(value as number).toFixed(5)}σ`;
+                        return value.toString();
+                    },
                 },
             });
         }
@@ -111,6 +115,7 @@ export default function StandardizedCotOscillator<RptType extends IFinancialFutu
                 enabled: true,
             },
             tooltip: {
+                show: true,
                 trigger: 'axis',
             },
             legend: {

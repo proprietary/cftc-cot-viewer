@@ -1,15 +1,11 @@
 'use client';
 
 import React from 'react';
-import * as echarts from 'echarts/core';
-import EChartsReactCore from 'echarts-for-react/lib/core';
-import { BarChart } from 'echarts/charts';
-import { TitleComponent, GridComponent, LegendComponent, ToolboxComponent, TooltipComponent, DataZoomComponent, } from 'echarts/components';
-import { SVGRenderer, CanvasRenderer } from 'echarts/renderers';
 import { useRouter } from 'next/navigation';
 import { useSearchParams, usePathname } from 'next/navigation';
 
 import { CachingCFTCApi, CFTCReportType, ContractListRequest, CommodityContractKind } from '@/cftc_api';
+import StandardizedCotOscillator from '../standardized_cot_oscillator';
 
 export default function Disaggregated() {
     const [cftcApi, setCftcApi] = React.useState<CachingCFTCApi>();
@@ -93,7 +89,28 @@ export default function Disaggregated() {
                         ))}
                 </select>
                 <div>
-                    <DisaggregatedCommoditiesNetPositioning reports={reports} loading={loadingDownstream} />
+                    <StandardizedCotOscillator
+                        columns={{
+                            'Producer/Merchant': {
+                                data: reports.map(x => x['prod_merc_positions_long'] - x['prod_merc_positions_short']),
+                            },
+                            'Swap Dealers': {
+                                data: reports.map(x => x['swap_positions_long_all'] - x['swap__positions_short_all']),
+                            },
+                            'Managed Money': {
+                                data: reports.map(x => x['m_money_positions_long_all'] - x['m_money_positions_short_all']),
+                            },
+                            'Other Reportables': {
+                                data: reports.map(x => x['other_rept_positions_long'] - x['other_rept_positions_short']),
+                            },
+                            'Non-Reportables': {
+                                data: reports.map(x => x['nonrept_positions_long_all'] - x['nonrept_positions_short_all']),
+                            },
+                        }}
+                        xAxisDates={reports.map(x => new Date(x.timestamp))}
+                        title={reports.length > 0 ? reports.at(0)?.contract_market_name : ''}
+                        loading={loadingDownstream}
+                    />
                 </div>
             </div>
         </div>
@@ -115,75 +132,3 @@ function buildCommodityCategoryTree(source: CommodityContractKind[]): Map<Catego
     return dst;
 }
 
-function DisaggregatedCommoditiesNetPositioning({ reports, loading }: { reports: any[], loading: boolean }) {
-    const dates = reports.map(x => new Date(x['timestamp']).toLocaleDateString());
-    const option = {
-        aria: {
-            show: true,
-        },
-        tooltip: {
-            show: true,
-            trigger: 'axis',
-        },
-        legend: {
-            itemGap: 5,
-        },
-        title: {
-            show: reports.length > 0,
-            text: reports.length > 0 ? reports[0]['commodity_name'] : '',
-            textStyle: {
-                fontFamily: 'sans-serif',
-                fontSize: 18,
-            }
-        },
-        toolbox: {
-            show: true,
-            feature: {
-                dataZoom: { show: true, },
-                reset: { show: true, }
-            }
-        },
-        dataZoom: [
-            {
-                type: 'slider',
-                filterMode: 'filter',
-                startValue: dates[Math.max(0, dates.length - 50)],
-            }
-        ],
-        grid: {
-            left: '5%',
-            right: '5%',
-            bottom: '5%',
-            top: '5%',
-            containLabel: true
-        },
-        xAxis: [
-            {
-                type: 'category',
-                data: dates,
-            }
-        ],
-        yAxis: [
-            { type: 'value', name: 'Net Contracts (Long - Short)', }
-        ],
-        series: [
-            { type: 'bar', data: reports.map(x => x['prod_merc_positions_long'] - x['prod_merc_positions_short']), name: 'Producer/Merchant' },
-            { type: 'bar', data: reports.map(x => x['swap_positions_long_all'] - x['swap__positions_short_all']), name: 'Swap Dealers' },
-            { type: 'bar', data: reports.map(x => x['m_money_positions_long_all'] - x['m_money_positions_short_all']), name: 'Managed Money', },
-            { type: 'bar', data: reports.map(x => x['other_rept_positions_long'] - x['other_rept_positions_short']), name: 'Other Reportables', },
-            { type: 'bar', data: reports.map(x => x['nonrept_positions_long_all'] - x['nonrept_positions_short_all']), name: 'Non-Reportables', },
-        ]
-    };
-   
-    return (
-        <EChartsReactCore
-            echarts={echarts}
-            showLoading={loading === true || reports.length === 0}
-            option={option}
-            theme={'dark'}
-            style={{ height: '1000px', width: '90vw' }} />
-    );
-
-}
-
-echarts.use([TitleComponent, TooltipComponent, ToolboxComponent, DataZoomComponent, LegendComponent, GridComponent, BarChart, SVGRenderer, CanvasRenderer]);
