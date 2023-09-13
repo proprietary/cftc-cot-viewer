@@ -400,6 +400,7 @@ export default function Tff() {
           columns={{
             'Dealers': { data: tffData.map(x => x.dealer_positions_long_all - x.dealer_positions_short_all) },
             'Asset Managers': { data: tffData.map(x => x.asset_mgr_positions_long - x.asset_mgr_positions_short) },
+            'Leveraged Funds': { data: tffData.map(x => x.lev_money_positions_long - x.lev_money_positions_short) },
             'Other Reportables': { data: tffData.map(x => x.other_rept_positions_long - x.other_rept_positions_short) },
             'Non-Reportables': { data: tffData.map(x => x.nonrept_positions_long_all - x.nonrept_positions_short_all ) },
           }}

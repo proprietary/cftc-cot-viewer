@@ -76,9 +76,6 @@ export default function StandardizedCotOscillator<RptType extends IFinancialFutu
     let legendSelected = React.useRef<{ [name: string]: boolean } | null>(null);
     let rememberedDataZoom = React.useRef<[number, number] | null>(null);
     const [standardized, setStandardized] = React.useState<boolean>(true);
-
-    //const zscoreLookback = React.useRef<number>(defaultZscoreLookback);
-    //const zscoreLookbackDOMLabel = React.useRef<HTMLSpanElement | null>();
     const [zscoreLookback, setZscoreLookback] = React.useState<number>(defaultZscoreLookback);
     const zscoredSeries = React.useCallback((zs: number, standardized: boolean) => {
         let series: any = [];
@@ -148,7 +145,7 @@ export default function StandardizedCotOscillator<RptType extends IFinancialFutu
                 {
                     id: 'cot-net-positioning-axis',
                     type: 'value',
-                    name: `${yAxisLabel}`,
+                    name: `${yAxisLabel}` + (standardized ? ` (${zscoreLookback}w lookback z-score)` : ''),
                     nameRotate: '90',
                     nameTextStyle: {
                         verticalAlign: 'middle',
@@ -165,37 +162,15 @@ export default function StandardizedCotOscillator<RptType extends IFinancialFutu
         };
     }, [xAxisDates, columns, yAxisLabel, rememberedDataZoom, zscoreLookback, standardized]);
 
-    const handleChangeZsLookback = (ev: React.ChangeEvent<HTMLInputElement>) => {
+    const handleChangeZsLookback = React.useCallback((ev: React.ChangeEvent<HTMLInputElement>) => {
         const n = parseInt(ev.target.value);
-        // zscoreLookback.current = n;
         setZscoreLookback(n);
-        // echartsRef.current?.getEchartsInstance().setOption({
-        //     series: zscoredSeries(n, standardized),
-        //     yAxis: [
-        //         {
-        //             id: 'cot-net-positioning-axis',
-        //             name: `${yAxisLabel} (z-score ${n}w lookback)`,
-        //         },
-        //     ],
-        // });
-        // if (zscoreLookbackDOMLabel.current) {
-        //     zscoreLookbackDOMLabel.current.textContent = n.toString();
-        // }
-    };
+    }, []);
 
-    const handleSetStandardized = (ev: React.ChangeEvent<HTMLInputElement>) => {
+    const handleSetStandardized = React.useCallback((ev: React.ChangeEvent<HTMLInputElement>) => {
         const b = ev.target.checked;
         setStandardized(b);
-        // echartsRef.current?.getEchartsInstance().setOption({
-        //     series: zscoredSeries(zscoreLookback, b),
-        //     yAxis: [
-        //         {
-        //             id: 'cot-net-positioning-axis',
-        //             name: b ? `${yAxisLabel} (Net Long open interest)` : `${yAxisLabel} (z-score ${zscoreLookback}w lookback)`,
-        //         },
-        //     ],
-        // });
-    }
+    }, []);
 
     React.useEffect(() => {
         // preserve legend selections
@@ -233,25 +208,23 @@ export default function StandardizedCotOscillator<RptType extends IFinancialFutu
 
     return (
         <div className="my-5">
-            <div>
+            <div className="block my-5">
+                <label>
+                    Standardized? <input type="checkbox" onChange={handleSetStandardized} checked={standardized} />
+                </label>
+            </div>
+
+            <div className={'block my-5' + (standardized ? '' : ' hidden')}>
                 <label>
                     Lookback (number of weeks to use to standardize positioning):
                     <strong>
                         {zscoreLookback}
-                        {/*<span ref={(ref) => { zscoreLookbackDOMLabel.current = ref; }}>
-                            {zscoreLookback.current.toString() ?? ''}
-                        </span> weeks */}
                     </strong>
                     <input
                         type="range"
                         className="mx-2"
                         min={2} max={100} step={1}
                         onChange={handleChangeZsLookback} />
-                </label>
-            </div>
-            <div className="block my-5">
-                <label>
-                    Standardized? <input type="checkbox" onChange={handleSetStandardized} checked={standardized} />
                 </label>
             </div>
             <div className="w-full">
