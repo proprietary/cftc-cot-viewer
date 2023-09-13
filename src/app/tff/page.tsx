@@ -56,13 +56,13 @@ export default function Tff() {
         throw e;
       }
     })();
-  }, [setCftcApi, setFuturesContracts, setCommoditySelected]);
+  }, []);
 
   // Retrieve the actual Commitment of Traders reports data.
   React.useEffect(() => {
     (async () => {
       try {
-        if (cftcApi == null) {
+        if (cftcApi == null || commoditySelected.length === 0) {
           return;
         }
         setLoading(true);
@@ -83,9 +83,12 @@ export default function Tff() {
         setLoading(false);
       }
     })();
-  }, [cftcApi, setTffData, commoditySelected, setLoading]);
+  }, [cftcApi, commoditySelected]);
   const handleChangeCommoditySelected = (ev: React.ChangeEvent<HTMLSelectElement>) => {
-    router.push(pathname + "?" + createQueryString("cftcCode", ev.target.value));
+    const thisSelection = ev.target.value;
+    if (thisSelection.length > 0) {
+      router.push(pathname + "?" + createQueryString("cftcCode", ev.target.value));
+    }
     setCommoditySelected(ev.target.value);
   };
   return (
@@ -114,6 +117,7 @@ export default function Tff() {
           }}
           xAxisDates={tffData.map(x => new Date(x.timestamp))}
           title={tffData.at(0)?.contract_market_name}
+          loading={loading}
         />
       </main>
     </>
