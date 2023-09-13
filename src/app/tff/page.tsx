@@ -227,6 +227,16 @@ function ZscoredLineChart({ reports }: { reports: readonly IFinancialFuturesCOTR
     (opt.dataZoom[0] as any) = { ...opt.dataZoom[0], start, end };
     echartsOptionRef.current = opt;
     echartsRef.current?.getEchartsInstance().setOption(opt);
+    if (legendSelected.current != null) {
+      for (const [legendName, toggled] of Object.entries(legendSelected.current)) {
+        if (toggled === false)
+          echartsRef.current?.getEchartsInstance().dispatchAction({
+            type: 'legendToggleSelect',
+            name: legendName,
+            selected: legendSelected.current,
+          });
+      }
+    }
   }, [reports, prevReports]);
   React.useEffect(() => {
     let opt = generateEchartsOption();
