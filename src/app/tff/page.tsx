@@ -154,83 +154,43 @@ function ZscoredLineChart({ reports }: { reports: readonly IFinancialFuturesCOTR
     series: [
       {
         name: 'Dealers',
-        type: 'line',
+        type: 'bar',
+        // smooth: true, // for type=line
         data: dealers,
-        smooth: true,
         tooltip: { valueFormatter: tooltipFormatter },
       },
       {
         name: 'Asset Managers',
-        type: 'line',
+        type: 'bar',
+        // smooth: true, // for type=line
         data: assetMgrs,
-        smooth: true,
         tooltip: { valueFormatter: tooltipFormatter },
       },
       {
         name: 'Leveraged Funds',
-        type: 'line',
+        type: 'bar',
+        // smooth: true, // for type=line
         data: levFunds,
-        smooth: true,
         tooltip: { valueFormatter: tooltipFormatter },
       },
       {
         name: 'Other Reportables',
-        type: 'line',
+        type: 'bar',
+        // smooth: true, // for type=line
         data: otherRpts,
-        smooth: true,
         tooltip: { valueFormatter: tooltipFormatter },
       },
       {
         name: 'Non-Reportables',
-        type: 'line',
+        type: 'bar',
+        // smooth: true, // for type=line
         data: nonRpts,
-        smooth: true,
         tooltip: {
           valueFormatter: tooltipFormatter,
         },
       },
     ],
   }), [reports, dealers, assetMgrs, levFunds, otherRpts, nonRpts]);
-
-  const generateSeries = React.useCallback(() => ([
-    {
-      name: 'Dealers',
-      type: 'line',
-      data: dealers,
-      smooth: true,
-      tooltip: { valueFormatter: tooltipFormatter },
-    },
-    {
-      name: 'Asset Managers',
-      type: 'line',
-      data: assetMgrs,
-      smooth: true,
-      tooltip: { valueFormatter: tooltipFormatter },
-    },
-    {
-      name: 'Leveraged Funds',
-      type: 'line',
-      data: levFunds,
-      smooth: true,
-      tooltip: { valueFormatter: tooltipFormatter },
-    },
-    {
-      name: 'Other Reportables',
-      type: 'line',
-      data: otherRpts,
-      smooth: true,
-      tooltip: { valueFormatter: tooltipFormatter },
-    },
-    {
-      name: 'Non-Reportables',
-      type: 'line',
-      data: nonRpts,
-      smooth: true,
-      tooltip: {
-        valueFormatter: tooltipFormatter,
-      },
-    },
-  ]), [dealers, levFunds, otherRpts, nonRpts]);
 
   const handleChangeZsLookback = (ev: React.ChangeEvent<HTMLInputElement>) => {
     const n = parseInt(ev.target.value);
@@ -274,7 +234,6 @@ function ZscoredLineChart({ reports }: { reports: readonly IFinancialFuturesCOTR
     (opt.dataZoom[0] as any) = { ...opt.dataZoom[0], start, end };
     echartsOptionRef.current = opt;
     echartsRef.current?.getEchartsInstance().setOption(opt);
-    console.log(legendSelected);
     if (legendSelected.current != null) {
       for (const [legendName, toggled] of Object.entries(legendSelected.current)) {
         if (toggled === false)
