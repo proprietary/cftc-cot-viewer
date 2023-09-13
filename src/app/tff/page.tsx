@@ -13,6 +13,7 @@ import { CachingCFTCApi, ContractListRequest, CFTCReportType, CommodityContractK
 import { IFinancialFuturesCOTReport } from '@/socrata_cot_report';
 import { rollingZscore } from '@/chart_math';
 import { SCREEN_LARGE, SCREEN_MEDIUM, SCREEN_SMALL, useViewportDimensions, usePrevious } from '@/util';
+import StandardizedCotOscillator from '../standardized_cot_oscillator';
 
 echarts.use([TitleComponent, LineChart, VisualMapComponent, TimelineComponent, TooltipComponent, ToolboxComponent, DataZoomComponent, LegendComponent, GridComponent, BarChart, SVGRenderer, CanvasRenderer]);
 
@@ -395,6 +396,15 @@ export default function Tff() {
         </select>
         <TradersInFinancialFutures reports={tffData} loading={loading} />
         <ZscoredLineChart reports={tffData} />
+        <StandardizedCotOscillator
+          columns={{
+            'Dealers': { data: tffData.map(x => x.dealer_positions_long_all - x.dealer_positions_short_all) },
+            'Asset Managers': { data: tffData.map(x => x.asset_mgr_positions_long - x.asset_mgr_positions_short) },
+            'Other Reportables': { data: tffData.map(x => x.other_rept_positions_long - x.other_rept_positions_short) },
+            'Non-Reportables': { data: tffData.map(x => x.nonrept_positions_long_all - x.nonrept_positions_short_all ) },
+          }}
+          xAxisDates={tffData.map(x => new Date(x.timestamp))}
+        />
       </main>
     </>
   );

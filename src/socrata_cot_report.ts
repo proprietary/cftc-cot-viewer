@@ -405,3 +405,17 @@ export interface ILegacyFuturesCOTReport extends ISocrataCOTReport {
     conc_net_le_8_tdr_long_other: number,
     conc_net_le_8_tdr_short_other: number,
 };
+
+// Utility for mapping a trader category (like "Dealers") to keys in the objects above.
+export interface ITraderCategory<RptType extends ILegacyFuturesCOTReport | IDisaggregatedFuturesCOTReport | IFinancialFuturesCOTReport> {
+    // shortName is used for IDs and serialization
+    shortName: string,
+    // longName is like "Dealers"; this is shown to the user as labels
+    longName: string,
+    // mapping of key names to something we can use
+    keyNames: {
+        longPositions: keyof RptType,
+        shortPositions: keyof RptType,
+        numTraders: keyof RptType,
+    },
+};
