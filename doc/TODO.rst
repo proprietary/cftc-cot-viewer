@@ -13,6 +13,7 @@ Important
 Features
 --------
 
+- [ ] Option to view 5 week delta, 3 week delta, ... in net positioning
 - [ ] Create a tree of navigation links rather than the ``<select>`` to choose a commodity.
 - [ ] Plot fast/slow/medium positioning.
 - [ ] Add support for Legacy COT.

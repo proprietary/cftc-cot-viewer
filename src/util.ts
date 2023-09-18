@@ -110,6 +110,14 @@ export function plusDays(d: Date, nDays: number): Date {
     return dst;
 }
 
+export function sameDay(d1: Date, d2: Date): boolean {
+    return d1.getUTCFullYear() === d2.getUTCFullYear() && d1.getUTCMonth() === d2.getUTCMonth() && d1.getUTCDate() === d2.getUTCDate();
+}
+
+export function formatDateYYYYMMDD(d: Date): string {
+    return d.getUTCFullYear() + '-' + d.getUTCMonth().toString().padStart(2, '0') + '-' + d.getUTCDate().toString().padStart(2, '0');
+}
+
 interface ViewportDimensions {
     width: number,
     height: number,

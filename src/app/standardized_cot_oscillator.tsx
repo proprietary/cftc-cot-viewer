@@ -9,6 +9,7 @@ import { SVGRenderer, CanvasRenderer } from 'echarts/renderers';
 import { IDisaggregatedFuturesCOTReport, IFinancialFuturesCOTReport, ILegacyFuturesCOTReport, ITraderCategory } from '@/socrata_cot_report';
 import { rollingZscore } from '@/chart_math';
 import { SCREEN_LARGE, SCREEN_MEDIUM, SCREEN_SMALL, useViewportDimensions, usePrevious } from '@/util';
+import { PriceBar } from '@/common_types';
 
 echarts.use([TitleComponent, LineChart, VisualMapComponent, TimelineComponent, TooltipComponent, ToolboxComponent, DataZoomComponent, LegendComponent, GridComponent, BarChart, SVGRenderer, CanvasRenderer]);
 
@@ -63,13 +64,14 @@ export default function StandardizedCotOscillator<RptType extends IFinancialFutu
         title = '',
         yAxisLabel = 'Net Positioning',
         loading = false,
+        priceData,
     }: {
         xAxisDates: Date[],
         columns: ITraderCategoryColumn,
         title?: string,
         loading?: boolean,
         yAxisLabel?: string,
-        // priceData: [{dt: Date, price: number}],
+        priceData?: PriceBar[],
     },
 ) {
     const echartsRef = React.useRef<EChartsReactCore | null>(null);
@@ -110,7 +112,7 @@ export default function StandardizedCotOscillator<RptType extends IFinancialFutu
             dataZoomInner.start = start;
             dataZoomInner.end = end;
         }
-        return {
+        let dst = {
             aria: {
                 enabled: true,
             },
@@ -158,13 +160,29 @@ export default function StandardizedCotOscillator<RptType extends IFinancialFutu
                     },
                     nameLocation: 'middle',
                     nameGap: 40,
-                }
+                },
             ],
             title: {
                 text: title,
                 textStyle: { fontSize: 12 },
             },
         };
+
+        if (priceData != null && priceData.length > 0) {
+            dst.yAxis.push({
+                id: 'underlying-price-axis',
+                type: 'value',
+                name: 'Price',
+            } as any);
+            dst.series.push({
+                name: 'Price',
+                type: 'line',
+                smooth: true,
+                data: priceData.map(x => x.close),
+            });
+        }
+
+        return dst;
     }, [xAxisDates, columns, yAxisLabel, rememberedDataZoom, zscoreLookback, standardized]);
 
     const handleChangeZsLookback = React.useCallback((ev: React.ChangeEvent<HTMLInputElement>) => {

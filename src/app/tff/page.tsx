@@ -14,6 +14,9 @@ import { IFinancialFuturesCOTReport } from '@/socrata_cot_report';
 import { rollingZscore } from '@/chart_math';
 import { SCREEN_LARGE, SCREEN_MEDIUM, SCREEN_SMALL, useViewportDimensions, usePrevious } from '@/util';
 import StandardizedCotOscillator from '../standardized_cot_oscillator';
+import { CommodityInfoService } from '@/commodity_info';
+import { CommodityCodes } from '@/cftc_codes_mapping';
+import { PriceBar } from '@/common_types';
 
 echarts.use([TitleComponent, LineChart, VisualMapComponent, TimelineComponent, TooltipComponent, ToolboxComponent, DataZoomComponent, LegendComponent, GridComponent, BarChart, SVGRenderer, CanvasRenderer]);
 
@@ -31,11 +34,13 @@ export default function Tff() {
     }, [searchParams]);
   const cftcCodeQueryParam = searchParams.get('cftcCode');
 
+  const commodityInfoSvc = React.useRef<CommodityInfoService>(new CommodityInfoService());
   const [loading, setLoading] = React.useState<boolean>(false);
   const [cftcApi, setCftcApi] = React.useState<CachingCFTCApi>();
   const [tffData, setTffData] = React.useState<Array<IFinancialFuturesCOTReport>>([]);
   const [futuresContracts, setFuturesContracts] = React.useState<CommodityContractKind[]>([]);
   const [commoditySelected, setCommoditySelected] = React.useState<string>(cftcCodeQueryParam ?? '');
+  const [priceData, setPriceData] = React.useState<PriceBar[]>([]);
 
   // Retrieve "contracts", aka all the different types of futures contracts.
   React.useEffect(() => {
@@ -76,6 +81,21 @@ export default function Tff() {
           },
         }) as IFinancialFuturesCOTReport[];
         setTffData(tffData);
+        // get price data, if any is available
+        if (tffData.at(0)?.cftc_commodity_code != null && tffData.at(0)?.cftc_commodity_code! in CommodityCodes) {
+          const commodityCode = tffData.at(0)!.cftc_commodity_code;
+          const commodityInfo = CommodityCodes[commodityCode];
+          if (commodityInfo.priceFeeds.length > 0) {
+            // for now just handle one type of price feed
+            const priceFeed = commodityInfo.priceFeeds[0];
+            const bars = await commodityInfoSvc.current?.requestPriceFeed(commodityCode, priceFeed, tffData.map(x => new Date(x.timestamp)));
+            setPriceData(bars);
+          } else {
+            setPriceData([]);
+          }
+        } else {
+          setPriceData([]);
+        }
       } catch (e) {
         console.error(e);
         throw e;
@@ -118,7 +138,17 @@ export default function Tff() {
           xAxisDates={tffData.map(x => new Date(x.timestamp))}
           title={tffData.at(0)?.contract_market_name}
           loading={loading}
+          priceData={priceData}
         />
+        <div>
+          <p>Commodity code: {tffData.at(0)?.cftc_commodity_code}</p>
+          <p>Commodity name: {tffData.at(0)?.commodity_name}</p>
+          <p>Commodity: {tffData.at(0)?.commodity}</p>
+          <p>Subgroup name: {tffData.at(0)?.commodity_subgroup_name}</p>
+          <p>Group name: {tffData.at(0)?.commodity_group_name}</p>
+          <p>Contract market name: {tffData.at(0)?.contract_market_name}</p>
+          <p>Market and exchange names: {tffData.at(0)?.market_and_exchange_names}</p>
+        </div>
       </main>
     </>
   );
