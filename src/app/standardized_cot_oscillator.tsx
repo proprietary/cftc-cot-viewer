@@ -177,7 +177,7 @@ export default function StandardizedCotOscillator<RptType extends IFinancialFutu
             dst.series.push({
                 name: 'Price',
                 type: 'line',
-                smooth: true,
+                yAxisIndex: 1,
                 data: priceData.map(x => x.close),
             });
         }

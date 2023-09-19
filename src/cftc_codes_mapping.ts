@@ -1,4 +1,4 @@
-import { CFTCCommodityCode, IPriceFeed } from './common_types';
+import { CFTCCommodityCode, IPriceFeed, PriceBar } from './common_types';
 
 export interface ICommodityInfoDetail {
     name: string,
@@ -120,6 +120,8 @@ export const CommodityCodes: ICommodityCodes = {
     },
 };
 
-function fredTreasuryYield(x: number) {
-    return x * -1;
+function fredTreasuryYield(priceBars: PriceBar[]) {
+    return priceBars.map((priceBar: PriceBar) => {
+        return { ...priceBar, close: priceBar.close * -1.0 };
+    });
 }

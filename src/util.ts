@@ -111,11 +111,21 @@ export function plusDays(d: Date, nDays: number): Date {
 }
 
 export function sameDay(d1: Date, d2: Date): boolean {
+    // return asDay(d1).getTime() === asDay(d2).getTime();
+    // return d1.toLocaleDateString() == d2.toLocaleDateString();
     return d1.getUTCFullYear() === d2.getUTCFullYear() && d1.getUTCMonth() === d2.getUTCMonth() && d1.getUTCDate() === d2.getUTCDate();
 }
 
+export function asDay(d: Date): Date {
+    d.setUTCHours(0);
+    d.setUTCMinutes(0);
+    d.setUTCSeconds(0);
+    d.setUTCMilliseconds(0);
+    return d;
+}
+
 export function formatDateYYYYMMDD(d: Date): string {
-    return d.getUTCFullYear() + '-' + d.getUTCMonth().toString().padStart(2, '0') + '-' + d.getUTCDate().toString().padStart(2, '0');
+    return d.getUTCFullYear() + '-' + (d.getUTCMonth()+1).toString().padStart(2, '0') + '-' + d.getUTCDate().toString().padStart(2, '0');
 }
 
 interface ViewportDimensions {

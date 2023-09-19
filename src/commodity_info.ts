@@ -1,7 +1,7 @@
 import { CommodityCodes } from './cftc_codes_mapping';
-import { requestFredSeries } from './fred_api';
+import { requestFredObservations } from './fred_api';
 import { PriceBar, IPriceFeed, PriceFeedSource, CFTCCommodityCode } from './common_types';
-import { sameDay } from './util';
+import { sameDay, asDay } from './util';
 
 export class CommodityInfoService {
     private cache: CommodityInfoDatabase = new CommodityInfoDatabase();
@@ -10,46 +10,50 @@ export class CommodityInfoService {
         if (onDates.length === 0) {
             throw new Error();
         }
-        const uptoDate = onDates[onDates.length - 1];
+        const lookUpToThisDate = onDates[onDates.length - 1];
         let priceBars = await this.cache.getPriceBars(priceFeed.source, cftcCommodityCode);
-        if (priceBars.length === 0 || priceBars.at(-1)!.timestamp.getTime() >= uptoDate.getTime()) {
-            priceBars = await this.requestExternalPriceFeed(priceFeed, uptoDate);
-            priceBars = this.removeUnnecessaryPriceBars(priceBars, onDates);
-            await this.cache.addPriceBars(priceFeed.source, cftcCommodityCode, priceBars);
+        if (priceBars.length === 0 || priceBars.at(-1)!.timestamp.getTime() < lookUpToThisDate.getTime()) {
+            const newPriceBars = await this.requestExternalPriceFeed(priceFeed, lookUpToThisDate);
+            if (newPriceBars.length > 0) {
+                priceBars = priceBars.concat(newPriceBars);
+                await this.cache.putPriceBars(priceFeed.source, cftcCommodityCode, priceBars);
+                priceBars = this.selectRelevantPriceBars(priceBars, onDates);
+            }
         }
         priceBars = this.postprocessPriceBars(priceBars, priceFeed);
         return priceBars;
     }
 
-    private removeUnnecessaryPriceBars(priceBars: PriceBar[], onlyOnDates: readonly Date[]): PriceBar[] {
-        if (priceBars.length < onlyOnDates.length) {
-            throw new Error('Not enough price history retrieved');
-        }
-        priceBars.sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
-        const onDates_ = [...onlyOnDates].sort((a, b) => a.getTime() - b.getTime());
-        let selectedPriceBars: PriceBar[] = new Array<PriceBar>(onDates_.length);
-        for (let i = 0; i < onDates_.length; ++i) {
-            let j = i;
-            while (j < priceBars.length && !sameDay(priceBars[j].timestamp, onDates_[i])) {
-                j++;
+    private selectRelevantPriceBars(priceBars: PriceBar[], onlyOnDates: readonly Date[]): PriceBar[] {
+        return onlyOnDates.map((target) => {
+            let found = priceBars.find(priceBar => sameDay(priceBar.timestamp, target));
+            if (found == null) {
+                return {
+                    timestamp: target,
+                    close: 0,
+                };
+            } else {
+                return found;
             }
-            if (j < priceBars.length) selectedPriceBars[i] = priceBars[j];
-        }
-        priceBars = selectedPriceBars;
-        return priceBars;
+        }).sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
     }
 
     private postprocessPriceBars(priceBars: PriceBar[], priceFeed: IPriceFeed): PriceBar[] {
-        for (const transform of (priceFeed.transforms ?? [])) {
-            priceBars = transform(priceBars);
-        }
+        (priceFeed.transforms ?? []).forEach((transform) => {
+            priceBars = priceBars.map(x => transform(x));
+        });
         return priceBars;
     }
 
     private async requestExternalPriceFeed(priceFeed: IPriceFeed, since?: Date, until?: Date): Promise<PriceBar[]> {
         switch (priceFeed.source) {
             case 'FRED': {
-                const series = await requestFredSeries(priceFeed.symbol, since!);
+                let series: PriceBar[] = [];
+                try {
+                    series = await requestFredObservations(priceFeed.symbol, since!);
+                } catch (e) {
+                    console.error(`Silently ignoring FRED error: ${e}`);
+                }
                 return series;
             }
             case 'unknown': {
@@ -80,7 +84,7 @@ export class CommodityInfoDatabase {
                 switch (ev.oldVersion) {
                     case 0: {
                         // perform initialization
-                        const priceDataStore = db.createObjectStore('priceBars', { keyPath: ['cftcCommodityCode', 'priceFeedSource'] });
+                        const priceBarsStore = db.createObjectStore('priceBars', { keyPath: ['cftcCommodityCode', 'priceFeedSource'] });
                         // priceDataStore.createIndex('cftc_commodity_code_index', 'cftcCommodityCode', { unique: false });
                         // priceDataStore.createIndex('price_feed_source_index', 'priceFeedSource', { unique: false });
                         // priceDataStore.createIndex('commodity_and_source_index',
@@ -115,7 +119,7 @@ export class CommodityInfoDatabase {
         });
     }
 
-    public addPriceBars(source: PriceFeedSource, cftcCommodityCode: CFTCCommodityCode, bars: PriceBar[]): Promise<void> {
+    public putPriceBars(source: PriceFeedSource, cftcCommodityCode: CFTCCommodityCode, bars: PriceBar[]): Promise<void> {
         return this.idb().then((db: IDBDatabase) => {
             return new Promise((resolve, reject) => {
                 const txn = db.transaction(['priceBars'], "readwrite");
@@ -123,8 +127,8 @@ export class CommodityInfoDatabase {
                     let e = (ev.target as IDBTransaction).error;
                     reject(e);
                 }
-                const priceDataStore = txn.objectStore('priceBars');
-                let request = priceDataStore.put({
+                const priceBarsStore = txn.objectStore('priceBars');
+                let request = priceBarsStore.put({
                     'cftcCommodityCode': cftcCommodityCode,
                     'priceFeedSource': source,
                     'bars': bars,
@@ -141,6 +145,14 @@ export class CommodityInfoDatabase {
         });
     }
 
+    public appendPriceBars(source: PriceFeedSource, cftcCommodityCode: CFTCCommodityCode, bars: PriceBar[]) {
+        return this.idb().then((db: IDBDatabase) => {
+            return new Promise((resolve, reject) => {
+                // TODO
+            })
+        });
+    }
+
     public getPriceBars(source: PriceFeedSource, cftcCommodityCode: CFTCCommodityCode): Promise<PriceBar[]> {
         return this.idb().then((db: IDBDatabase) => {
             return new Promise((resolve, reject) => {
@@ -149,8 +161,8 @@ export class CommodityInfoDatabase {
                     let e = (ev.target as IDBTransaction).error;
                     reject(e);
                 }
-                const priceDataStore = txn.objectStore('priceBars');
-                const request = priceDataStore.get(IDBKeyRange.only([cftcCommodityCode, source]));
+                const priceBarsStore = txn.objectStore('priceBars');
+                const request = priceBarsStore.get(IDBKeyRange.only([cftcCommodityCode, source]));
                 request.onsuccess = (ev) => {
                     const result = (ev.target as IDBRequest<any>).result;
                     resolve(result == null || result['bars'] == null ? [] : result['bars'] as PriceBar[]);

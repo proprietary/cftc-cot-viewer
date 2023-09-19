@@ -1,37 +1,30 @@
 import { PriceBar } from './common_types';
 import { formatDateYYYYMMDD } from './util';
 
-const FredAPIUrl = 'https://api.stlouisfed.org';
+interface FredObservation {
+    date: string,
+    value: string,
+}
 
-export async function requestFredSeries(symbol: string, since: Date = new Date(), apiKey: string = process.env.NEXT_PUBLIC_FRED_API_KEY!): Promise<PriceBar[]> {
-    let offset: number = 0;
-    let bars: PriceBar[] = [];
-    do {
-        let params = new URLSearchParams({
-            'series_id': symbol,
-            'api_key': apiKey,
-            'file_type': 'json',
-            // 'frequency': 'wetu',
-            'frequency': 'd',
-            'aggregation_method': 'eop',
-            'offset': offset.toString(),
-            'observation_end': formatDateYYYYMMDD(since),
-        });
-        let resp = await fetch(FredAPIUrl + '/fred/series/observations?' + params, {
-            method: 'GET',
-        });
-        if (resp.status !== 200) {
-            console.error(resp.statusText);
-            throw new Error(resp.statusText);
-        }
-        let responseBody: any = await resp.json();
-        if (responseBody['count'] >= responseBody['limit']) {
-            offset += responseBody['count'] + 1;
-        }
-        bars.concat(responseBody['observations'].map((o: any): PriceBar => ({
-            timestamp: new Date(Date.parse(o['date'])),
-            close: parseFloat(o['value']),
-        })));
-    } while (offset > 0);
+export async function requestFredObservations(seriesId: string, until: Date = new Date()): Promise<PriceBar[]> {
+    let params = new URLSearchParams({
+        'series_id': seriesId,
+        'observation_end': formatDateYYYYMMDD(until),
+    });
+    let resp = await fetch('https://fred.libhack.so/v0/observations?' + params, {
+        method: 'GET',
+    });
+    if (resp.status !== 200) {
+        console.error(resp.statusText);
+        console.error(await resp.text());
+        throw new Error(resp.statusText);
+    }
+    let responseBody: FredObservation[] = await resp.json();
+    const bars: PriceBar[] = responseBody.map((o) => {
+        return {
+            timestamp: new Date(Date.parse(o.date)),
+            close: parseFloat(o.value),
+        };
+    }).filter((o) => !isNaN(parseFloat(o.close as any)));
     return bars;
 }
