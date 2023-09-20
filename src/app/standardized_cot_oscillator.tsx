@@ -173,6 +173,7 @@ export default function StandardizedCotOscillator<RptType extends IFinancialFutu
                 id: 'underlying-price-axis',
                 type: 'value',
                 name: 'Price',
+                scale: true,
             } as any);
             dst.series.push({
                 name: 'Price',
