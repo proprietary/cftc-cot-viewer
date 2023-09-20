@@ -20,11 +20,22 @@ export async function requestFredObservations(seriesId: string, until: Date = ne
         throw new Error(resp.statusText);
     }
     let responseBody: FredObservation[] = await resp.json();
-    const bars: PriceBar[] = responseBody.map((o) => {
+    const bars: PriceBar[] = responseBody.map((o, idx, arr) => {
+        let close = parseFloat(o.value);
+        // smooth out NaNs by taking previous day values
+        if (isNaN(parseFloat(o.value))) {
+            for (let pastIdx = idx; pastIdx >= 0; pastIdx--) {
+                let maybeClosePrice: number = parseFloat(arr[pastIdx].value);
+                if (!isNaN(maybeClosePrice)) {
+                    close = maybeClosePrice;
+                    break;
+                }
+            }
+        }
         return {
             timestamp: new Date(Date.parse(o.date)),
-            close: parseFloat(o.value),
+            close,
         };
-    }).filter((o) => !isNaN(parseFloat(o.close as any)));
+    });
     return bars;
 }

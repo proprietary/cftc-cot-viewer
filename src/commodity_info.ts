@@ -25,22 +25,28 @@ export class CommodityInfoService {
     }
 
     private selectRelevantPriceBars(priceBars: PriceBar[], onlyOnDates: readonly Date[]): PriceBar[] {
-        return onlyOnDates.map((target) => {
-            let found = priceBars.find(priceBar => sameDay(priceBar.timestamp, target));
-            if (found == null) {
-                return {
-                    timestamp: target,
-                    close: 0,
-                };
-            } else {
-                return found;
+        let priceBarsIdx = 0;
+        let relevantPriceBars: PriceBar[] = onlyOnDates.map((timestamp) => {
+            let thisBar = {
+                timestamp,
+                close: NaN,
+            };
+            let tempPriceBarsIdx = priceBarsIdx;
+            while (tempPriceBarsIdx < priceBars.length && !sameDay(priceBars[tempPriceBarsIdx].timestamp, timestamp)) {
+                ++tempPriceBarsIdx;
             }
-        }).sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
+            if (tempPriceBarsIdx < priceBars.length && sameDay(priceBars[tempPriceBarsIdx].timestamp, timestamp)) {
+                thisBar.close = priceBars[tempPriceBarsIdx].close;
+                priceBarsIdx = tempPriceBarsIdx;
+            }
+            return thisBar;
+        });
+        return relevantPriceBars;
     }
 
     private postprocessPriceBars(priceBars: PriceBar[], priceFeed: IPriceFeed): PriceBar[] {
         (priceFeed.transforms ?? []).forEach((transform) => {
-            priceBars = priceBars.map(x => transform(x));
+            priceBars = transform(priceBars);
         });
         return priceBars;
     }

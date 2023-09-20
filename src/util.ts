@@ -125,7 +125,7 @@ export function asDay(d: Date): Date {
 }
 
 export function formatDateYYYYMMDD(d: Date): string {
-    return d.getUTCFullYear() + '-' + (d.getUTCMonth()+1).toString().padStart(2, '0') + '-' + d.getUTCDate().toString().padStart(2, '0');
+    return d.getUTCFullYear() + '-' + (d.getUTCMonth() + 1).toString().padStart(2, '0') + '-' + d.getUTCDate().toString().padStart(2, '0');
 }
 
 interface ViewportDimensions {
@@ -176,9 +176,9 @@ export function LHAssert(pred: boolean, message?: string): void {
 }
 
 export const usePrevious = <T extends unknown>(value: T): T | undefined => {
-  const ref = useRef<T>();
-  useEffect(() => {
-    ref.current = value;
-  });
-  return ref.current;
+    const ref = useRef<T>();
+    useEffect(() => {
+        ref.current = value;
+    });
+    return ref.current;
 };
