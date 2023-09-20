@@ -18,6 +18,7 @@ import { CommodityInfoService } from '@/commodity_info';
 import { CommodityCodes } from '@/cftc_codes_mapping';
 import { PriceBar } from '@/common_types';
 import StackedAbsValuesChart from '@/stacked_abs_values_chart';
+import CommitmentChangesChart from '@/commitment_changes_chart';
 
 echarts.use([TitleComponent, LineChart, VisualMapComponent, TimelineComponent, TooltipComponent, ToolboxComponent, DataZoomComponent, LegendComponent, GridComponent, BarChart, SVGRenderer, CanvasRenderer]);
 
@@ -161,6 +162,45 @@ export default function Tff() {
             ]
           }
             data={tffData}
+          />
+        </div>
+        <div className="my-2">
+          <div className="text-lg">Changes in Commitments over N weeks</div>
+          <CommitmentChangesChart dataFrame={tffData}
+            cols={
+              [
+                {
+                  name: 'Dealers',
+                  column: 'dealer_positions_long_all',
+                  longs: 'dealer_positions_long_all',
+                  shorts: 'dealer_positions_short_all',
+                },
+                {
+                  name: 'Asset Managers',
+                  column: 'asset_mgr_positions_long',
+                  longs: 'asset_mgr_positions_long',
+                  shorts: 'asset_mgr_positions_short',
+                },
+                {
+                  name: 'Leveraged Funds',
+                  column: 'lev_money_positions_long',
+                  longs: 'lev_money_positions_long',
+                  shorts: 'lev_money_positions_short',
+                },
+                {
+                  name: 'Other Reportables',
+                  column: 'other_rept_positions_long',
+                  longs: 'other_rept_positions_long',
+                  shorts: 'other_rept_positions_short',
+                },
+                {
+                  name: 'Non-Reportables',
+                  column: 'nonrept_positions_long_all',
+                  longs: 'nonrept_positions_long_all',
+                  shorts: 'nonrept_positions_short_all',
+                },
+              ]
+            }
           />
         </div>
         <div className="my-2">

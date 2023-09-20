@@ -83,17 +83,14 @@ export default function StandardizedCotOscillator<RptType extends IFinancialFutu
     const zscoredSeries = React.useCallback((zs: number, standardized: boolean) => {
         let series: any = [];
         for (const traderCategoryName of Object.keys(columns)) {
-            let data: number[] = [];
+            let data: number[] = [...columns[traderCategoryName].data];
             if (standardized) {
-                data = columns[traderCategoryName].data;
                 let divisor = columns[traderCategoryName].normalizingDivisor;
                 if (divisor != null && divisor > 0) {
                     for (let i = 0; i < data.length; ++i)
                         data[i] /= divisor;
                 }
-                data = rollingZscore(columns[traderCategoryName].data, zs);
-            } else {
-                data = [...columns[traderCategoryName].data];
+                data = rollingZscore(data, zs);
             }
             series.push({
                 id: traderCategoryName,

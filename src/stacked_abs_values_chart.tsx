@@ -36,6 +36,7 @@ export default function StackedAbsValuesChart({ cols, data }: { data: IAnyCOTRep
                     x: 'timestamp',
                     y: column as string,
                 },
+                smooth: true,
                 areaStyle: {},
                 stack: 'Total',
                 emphasis: {
