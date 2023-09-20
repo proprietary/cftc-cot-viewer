@@ -42,7 +42,7 @@ export default function CommitmentChangesChart({
     const [posnMethod, setPosnMethod] = React.useState<PositioningAggregationMethod>(PositioningAggregationMethod.Net);
 
     const genSeries = React.useCallback((): BarSeriesOption[] => {
-        return cols.map(({ longs, shorts, name }) => {
+        return cols.map(({ longs, shorts, name }, colIdx) => {
             let data: [number, number][] = [];
             for (let i = nWeeksDelta; i < dataFrame.length; ++i) {
                 let thisRow = dataFrame[i];
@@ -75,15 +75,14 @@ export default function CommitmentChangesChart({
                 type: 'bar',
                 name,
                 data,
+                xAxisIndex: colIdx,
+                yAxisIndex: colIdx,
             };
         });
     }, [cols, dataFrame, nWeeksDelta, posnMethod]);
 
     const genOpt = React.useCallback((): ECOption => {
         return {
-            grid: {
-                containLabel: true,
-            },
             toolbox: {
                 show: true,
                 feature: {
@@ -96,21 +95,31 @@ export default function CommitmentChangesChart({
             legend: {
                 show: true,
             },
-            dataZoom: [
-                {
-                    type: 'slider',
-                    filterMode: 'filter',
-                    // start: 80,
-                },
-            ],
-            xAxis: [{
+            dataZoom: cols.map((_, idx) => ({
+                show: true,
+                type: 'inside',
+                filterMode: 'filter',
+                start: 80,
+                xAxisIndex: idx,
+            })),
+            grid: cols.map((_, idx, arr) => ({
+                left: '2%',
+                top: `${idx * (95 / arr.length) + 5}%`,
+                right: '2%',
+                // bottom: 'auto',
+                height: `${(80 / arr.length)}%`,
+                containLabel: true,
+            })),
+            xAxis: cols.map((_, idx) => ({
                 type: 'time',
                 axisLabel: {
                     formatter: (value: any) => formatDateYYYYMMDD(new Date(value)),
                 },
-            }],
-            yAxis: cols.map(() => ({
+                gridIndex: idx,
+            })),
+            yAxis: cols.map((_, idx) => ({
                 type: 'value',
+                gridIndex: idx,
             })),
             series: genSeries(),
         };
@@ -138,6 +147,8 @@ export default function CommitmentChangesChart({
         setPosnMethod(ev.target.value as PositioningAggregationMethod);
     }, []);
 
+    const echartsOptionRef = React.useRef<ECOption>(genOpt());
+
     const optTypes = [PositioningAggregationMethod.Net, PositioningAggregationMethod.Longs, PositioningAggregationMethod.Shorts];
     return (
         <div className="my-2">
@@ -146,26 +157,26 @@ export default function CommitmentChangesChart({
                 {nWeeksDelta}
             </div>
             <div className="block">
-            {optTypes.map((option, idx) => {
-                return (
-                    <label className="inline-flex items-center space-x-2 cursor-pointer" key={idx}>
-                        <input
-                            type="radio"
-                            name="radioGroup"
-                            value={option}
-                            checked={posnMethod === option}
-                            onChange={handleOptionChange}
-                            className="form-radio h-4 w-4" />
-                        <span className="text-gray-700">{option}</span>
-                    </label>
-                );
-            })}
+                {optTypes.map((option, idx) => {
+                    return (
+                        <label className="inline-flex items-center space-x-2 cursor-pointer" key={idx}>
+                            <input
+                                type="radio"
+                                name="radioGroup"
+                                value={option}
+                                checked={posnMethod === option}
+                                onChange={handleOptionChange}
+                                className="form-radio h-4 w-4" />
+                            <span className="text-gray-700">{option}</span>
+                        </label>
+                    );
+                })}
             </div>
             <div className="my-1">
                 <EChartsReactCore
                     echarts={echarts}
                     ref={ref => { echartsRef.current = ref; }}
-                    option={genOpt()}
+                    option={echartsOptionRef.current}
                     theme={"dark"}
                     style={{
                         height: eChartsHeight,
