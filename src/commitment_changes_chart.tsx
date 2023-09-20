@@ -95,13 +95,13 @@ export default function CommitmentChangesChart({
             legend: {
                 show: true,
             },
-            dataZoom: cols.map((_, idx) => ({
+            dataZoom: {
                 show: true,
-                type: 'inside',
+                type: 'slider',
                 filterMode: 'filter',
                 start: 80,
-                xAxisIndex: idx,
-            })),
+                xAxisIndex: cols.map((_, idx) => idx),
+            },
             grid: cols.map((_, idx, arr) => ({
                 left: '2%',
                 top: `${idx * (95 / arr.length) + 5}%`,
