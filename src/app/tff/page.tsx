@@ -17,6 +17,7 @@ import StandardizedCotOscillator from '../standardized_cot_oscillator';
 import { CommodityInfoService } from '@/commodity_info';
 import { CommodityCodes } from '@/cftc_codes_mapping';
 import { PriceBar } from '@/common_types';
+import StackedAbsValuesChart from '@/stacked_abs_values_chart';
 
 echarts.use([TitleComponent, LineChart, VisualMapComponent, TimelineComponent, TooltipComponent, ToolboxComponent, DataZoomComponent, LegendComponent, GridComponent, BarChart, SVGRenderer, CanvasRenderer]);
 
@@ -127,20 +128,42 @@ export default function Tff() {
               </optgroup>
             ))}
         </select>
-        <StandardizedCotOscillator
-          columns={{
-            'Dealers': { data: tffData.map(x => x.dealer_positions_long_all - x.dealer_positions_short_all) },
-            'Asset Managers': { data: tffData.map(x => x.asset_mgr_positions_long - x.asset_mgr_positions_short) },
-            'Leveraged Funds': { data: tffData.map(x => x.lev_money_positions_long - x.lev_money_positions_short) },
-            'Other Reportables': { data: tffData.map(x => x.other_rept_positions_long - x.other_rept_positions_short) },
-            'Non-Reportables': { data: tffData.map(x => x.nonrept_positions_long_all - x.nonrept_positions_short_all ) },
-          }}
-          xAxisDates={tffData.map(x => new Date(x.timestamp))}
-          title={tffData.at(0)?.contract_market_name}
-          loading={loading}
-          priceData={priceData}
-        />
-        <div>
+        <div className="my-2">
+          <div className="block">
+            <span className="text-lg">Net Positioning</span>
+            <abbr title="Net of Longs minus Shorts held by traders in the given category (Long - Short = Net)">Longs - Shorts</abbr>
+          </div>
+          <StandardizedCotOscillator
+            columns={{
+              'Dealers': { data: tffData.map(x => x.dealer_positions_long_all - x.dealer_positions_short_all), normalizingDivisor: tffData.at(0)?.open_interest_all },
+              'Asset Managers': { data: tffData.map(x => x.asset_mgr_positions_long - x.asset_mgr_positions_short), normalizingDivisor: tffData.at(0)?.open_interest_all },
+              'Leveraged Funds': { data: tffData.map(x => x.lev_money_positions_long - x.lev_money_positions_short), normalizingDivisor: tffData.at(0)?.open_interest_all },
+              'Other Reportables': { data: tffData.map(x => x.other_rept_positions_long - x.other_rept_positions_short), normalizingDivisor: tffData.at(0)?.open_interest_all, },
+              'Non-Reportables': { data: tffData.map(x => x.nonrept_positions_long_all - x.nonrept_positions_short_all), normalizingDivisor: tffData.at(0)?.open_interest_all, },
+            }}
+            xAxisDates={tffData.map(x => new Date(x.timestamp))}
+            title={tffData.at(0)?.contract_market_name}
+            loading={loading}
+            priceData={priceData}
+          />
+        </div>
+        <div className="my-2">
+          <div className="text-lg">
+            Open Interest
+          </div>
+          <StackedAbsValuesChart cols={
+            [
+              { name: 'Dealers', column: 'dealer_positions_long_all', },
+              { name: 'Asset Managers', column: 'asset_mgr_positions_long', },
+              { name: 'Leveraged Funds', column: 'lev_money_positions_long', },
+              { name: 'Other Reportables', column: 'other_rept_positions_long', },
+              { name: 'Non-Reportables', column: 'nonrept_positions_long_all', },
+            ]
+          }
+            data={tffData}
+          />
+        </div>
+        <div className="my-2">
           <p>Commodity code: {tffData.at(0)?.cftc_commodity_code}</p>
           <p>Commodity name: {tffData.at(0)?.commodity_name}</p>
           <p>Commodity: {tffData.at(0)?.commodity}</p>

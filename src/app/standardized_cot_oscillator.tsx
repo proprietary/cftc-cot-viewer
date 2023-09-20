@@ -19,6 +19,7 @@ const defaultWeeksZoom = 50; // default number of weeks the zoom slider should h
 interface ITraderCategoryColumn {
     [name: string]: {
         data: number[],
+        normalizingDivisor?: number,
     },
 };
 
@@ -84,6 +85,12 @@ export default function StandardizedCotOscillator<RptType extends IFinancialFutu
         for (const traderCategoryName of Object.keys(columns)) {
             let data: number[] = [];
             if (standardized) {
+                data = columns[traderCategoryName].data;
+                let divisor = columns[traderCategoryName].normalizingDivisor;
+                if (divisor != null && divisor > 0) {
+                    for (let i = 0; i < data.length; ++i)
+                        data[i] /= divisor;
+                }
                 data = rollingZscore(columns[traderCategoryName].data, zs);
             } else {
                 data = [...columns[traderCategoryName].data];
