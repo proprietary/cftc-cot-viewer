@@ -128,3 +128,94 @@ function mean(a: ArrSlice<number>): number {
     const result = sum / len;
     return result;
 }
+
+// Min-Max Scaling, a standardization method works better than z-score for data that doesn't have a Gaussian distribution.
+// It scales elements of the array into a range [-1, 1].
+// MinMaxScaled(Series)[i] = (Series[i] - Min(Series)) / (Max(Series) - Min(Series))
+// X_normalized = (X - X_min) / (X_max - X_min)
+// X_std = (X - X.min(axis=0)) / (X.max(axis=0) - X.min(axis=0))
+// X_scaled = X_std * (max - min) + min
+// See: https://scikit-learn.org/stable/modules/generated/sklearn.preprocessing.MinMaxScaler.html
+function minMaxScaler(a: ArrSlice<number>, lookback: number): Array<number> {
+    // unimplemented
+    return [];
+}
+
+function arrSliceMin(a: ArrSlice<number>): number {
+    let maybeMin = Infinity;
+    for (let i = a.startIndex; i < a.endIndex; ++i) {
+        if (a.arr[i] < maybeMin) {
+            maybeMin = a.arr[i];
+        }
+    }
+    return maybeMin;
+}
+
+function arrSliceMax(a: ArrSlice<number>): number {
+    let maybeMax = -Infinity;
+    for (let i = a.startIndex; i < a.endIndex; ++i) {
+        if (a.arr[i] > maybeMax) {
+            maybeMax = a.arr[i];
+        }
+    }
+    return maybeMax;
+}
+
+// Robust Scaling, a normalization method that is more robust to outliers.
+// Z-scoring uses the mean and standard deviation; robust scaling uses the interquartile range.
+// X_normalized = (X - IQR(X, 1)) / (IQR(X, 3) - IQR(X, 1))
+function robustScaler(a: ArrSlice<number>): Array<number> {
+    const len = a.endIndex - a.startIndex;
+    let dst = new Array<number>(len);
+    const [q1, q3] = arrSliceInterQuartileRange(a);
+    const iqr = q3 - q1;
+    for (let i = 0; i < len; ++i) {
+        dst[i] = a.arr[i + a.startIndex] - q1;
+        if (iqr !== 0) {
+            dst[i] /= iqr;
+        }
+    }
+    return dst;
+}
+
+export function rollingRobustScaler(a: Array<number>, lookback: number): Array<number> {
+    let dst: number[] = new Array<number>(a.length);
+    for (let idx = 0; idx < a.length; ++idx) {
+        let [q1, q3] = arrSliceInterQuartileRange({
+            arr: a,
+            startIndex: Math.max(idx - lookback, 0),
+            endIndex: idx + 1,
+        });
+        const iqr = q3 - q1;
+        let rb = a[idx] - q1;
+        if (iqr !== 0) {
+            rb /= iqr;
+        }
+        dst[idx] = rb;
+    }
+    return dst;
+}
+
+function arrSliceInterQuartileRange(a: ArrSlice<number>): [q1: number, q3: number] {
+    let arr = a.arr.slice(a.startIndex, a.endIndex).sort((a, b) => a - b);
+    let q1 = arrSliceMedian({ arr, startIndex: 0, endIndex: arr.length / 2 }, true);
+    let q3 = arrSliceMedian({ arr, startIndex: arr.length / 2, endIndex: arr.length }, true);
+    return [q1, q3];
+}
+
+function arrSliceMedian(a: ArrSlice<number>, isAlreadySorted: boolean = false): number {
+    const len = a.endIndex - a.startIndex;
+    let arr = a.arr;
+    if (!isAlreadySorted) {
+        arr = a.arr.slice(a.startIndex, a.endIndex).sort((a, b) => a - b);
+    }
+    if (len % 2 === 0) {
+        // if there are an even number of elements, take the average of the two middle elements
+        const mid1 = arr[len / 2 - 1];
+        const mid2 = arr[len / 2];
+        return (mid1 + mid2) / 2.;
+    } else {
+        // return the middle value
+        return arr[Math.floor(len / 2)];
+    }
+}

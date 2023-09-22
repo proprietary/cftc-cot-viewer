@@ -14,15 +14,13 @@ echarts.use([BarChart, TitleComponent, LegendComponent, DataZoomComponent, Toolt
 
 export interface INumberOfTradersColumn {
     name: string,
-    n_traders_long: keyof IFinancialFuturesCOTReport, // | keyof IDisaggregatedFuturesCOTReport | keyof ILegacyFuturesCOTReport,
-    n_traders_short: keyof IFinancialFuturesCOTReport, // | keyof IDisaggregatedFuturesCOTReport | keyof ILegacyFuturesCOTReport,
+    n_traders_long: keyof IFinancialFuturesCOTReport | keyof IDisaggregatedFuturesCOTReport | keyof ILegacyFuturesCOTReport,
+    n_traders_short: keyof IFinancialFuturesCOTReport | keyof IDisaggregatedFuturesCOTReport | keyof ILegacyFuturesCOTReport,
 }
 
-// type Rpt = {
-//     [k in keyof IFinancialFuturesCOTReport]: string | number;
-//     //[k in keyof IFinancialFuturesCOTReport | keyof IDisaggregatedFuturesCOTReport | keyof ILegacyFuturesCOTReport]: string | number;
-// }
-type Rpt = IFinancialFuturesCOTReport;
+type Rpt = {
+    [k in keyof IFinancialFuturesCOTReport | keyof IDisaggregatedFuturesCOTReport | keyof ILegacyFuturesCOTReport]?: any;
+}
 
 interface FlattenedSelectedCols {
     [traderCategoryName: string]: {

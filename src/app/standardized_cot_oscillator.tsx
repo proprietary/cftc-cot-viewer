@@ -7,7 +7,7 @@ import { TitleComponent, GridComponent, LegendComponent, TooltipComponent, Toolb
 import { BarChart, LineChart } from 'echarts/charts';
 import { SVGRenderer, CanvasRenderer } from 'echarts/renderers';
 import { IDisaggregatedFuturesCOTReport, IFinancialFuturesCOTReport, ILegacyFuturesCOTReport, ITraderCategory } from '@/socrata_cot_report';
-import { rollingZscore } from '@/chart_math';
+import { rollingRobustScaler, rollingZscore } from '@/chart_math';
 import { SCREEN_LARGE, SCREEN_MEDIUM, SCREEN_SMALL, useViewportDimensions, usePrevious } from '@/util';
 import { PriceBar } from '@/common_types';
 
@@ -56,7 +56,12 @@ function extractZscoredPositioning<RptType extends IFinancialFuturesCOTReport | 
     return dst;
 }
 
-const defaultZscoreLookback = 50;
+const defaultLookback = 50;
+
+enum NormalizationMethod {
+    StandardZscore = 'zscore',
+    RobustScaling = 'robust-scaling',
+};
 
 export default function StandardizedCotOscillator<RptType extends IFinancialFuturesCOTReport | IDisaggregatedFuturesCOTReport | ILegacyFuturesCOTReport>(
     {
@@ -79,8 +84,9 @@ export default function StandardizedCotOscillator<RptType extends IFinancialFutu
     let legendSelected = React.useRef<{ [name: string]: boolean } | null>(null);
     let rememberedDataZoom = React.useRef<[number, number] | null>(null);
     const [standardized, setStandardized] = React.useState<boolean>(true);
-    const [zscoreLookback, setZscoreLookback] = React.useState<number>(defaultZscoreLookback);
-    const zscoredSeries = React.useCallback((zs: number, standardized: boolean) => {
+    const [normalizationMethod, setNormalizationMethod] = React.useState<NormalizationMethod>(NormalizationMethod.RobustScaling);
+    const [lookback, setLookback] = React.useState<number>(defaultLookback);
+    const computeSeries = React.useCallback((zs: number, standardized: boolean, normalizationMethod: NormalizationMethod) => {
         let series: any = [];
         for (const traderCategoryName of Object.keys(columns)) {
             let data: number[] = [...columns[traderCategoryName].data];
@@ -90,7 +96,16 @@ export default function StandardizedCotOscillator<RptType extends IFinancialFutu
                     for (let i = 0; i < data.length; ++i)
                         data[i] /= divisor;
                 }
-                data = rollingZscore(data, zs);
+                switch (normalizationMethod) {
+                    case NormalizationMethod.RobustScaling:
+                        data = rollingRobustScaler(data, zs);
+                        break;
+                    case NormalizationMethod.StandardZscore:
+                        data = rollingZscore(data, zs);
+                        break;
+                    default:
+                        throw new Error('unknown normalization method; this should be unreachable');
+                }
             }
             series.push({
                 id: traderCategoryName,
@@ -145,7 +160,7 @@ export default function StandardizedCotOscillator<RptType extends IFinancialFutu
                     ...dataZoomInner,
                 }
             ],
-            series: zscoredSeries(zscoreLookback, standardized),
+            series: computeSeries(lookback, standardized, normalizationMethod),
             xAxis: [
                 {
                     data: xAxisDates.map(x => x.toLocaleDateString()),
@@ -156,7 +171,7 @@ export default function StandardizedCotOscillator<RptType extends IFinancialFutu
                 {
                     id: 'cot-net-positioning-axis',
                     type: 'value',
-                    name: `${yAxisLabel}` + (standardized ? ` (${zscoreLookback}w lookback z-score)` : ''),
+                    name: `${yAxisLabel}` + (standardized ? ` (${lookback}w lookback z-score)` : ''),
                     nameRotate: '90',
                     nameTextStyle: {
                         verticalAlign: 'middle',
@@ -188,16 +203,21 @@ export default function StandardizedCotOscillator<RptType extends IFinancialFutu
         }
 
         return dst;
-    }, [xAxisDates, columns, yAxisLabel, rememberedDataZoom, zscoreLookback, standardized]);
+    }, [xAxisDates, columns, yAxisLabel, rememberedDataZoom, lookback, standardized, normalizationMethod]);
 
     const handleChangeZsLookback = React.useCallback((ev: React.ChangeEvent<HTMLInputElement>) => {
         const n = parseInt(ev.target.value);
-        setZscoreLookback(n);
+        setLookback(n);
     }, []);
 
     const handleSetStandardized = React.useCallback((ev: React.ChangeEvent<HTMLInputElement>) => {
         const b = ev.target.checked;
         setStandardized(b);
+    }, []);
+
+    const handleSetNormalizationMethod = React.useCallback((ev: React.ChangeEvent<HTMLInputElement>) => {
+        const v = ev.target.value;
+        setNormalizationMethod(v as NormalizationMethod);
     }, []);
 
     React.useEffect(() => {
@@ -220,7 +240,7 @@ export default function StandardizedCotOscillator<RptType extends IFinancialFutu
                 100.
             ];
         }
-    }, [columns, xAxisDates, legendSelected, rememberedDataZoom, standardized, zscoreLookback]);
+    }, [columns, xAxisDates, legendSelected, rememberedDataZoom, standardized, lookback]);
 
     // compute breakpoints for the ECharts instance; making it responsive
     const viewportDimensions = useViewportDimensions();
@@ -242,11 +262,28 @@ export default function StandardizedCotOscillator<RptType extends IFinancialFutu
                 </label>
             </div>
 
+            <div className="block m-2">
+                <label>
+                    Robust Scaling
+                    <input type="radio" value={NormalizationMethod.RobustScaling}
+                        checked={normalizationMethod === NormalizationMethod.RobustScaling}
+                        onChange={handleSetNormalizationMethod}
+                    />
+                </label>
+                <label>
+                    Z-score
+                    <input type="radio" value={NormalizationMethod.StandardZscore}
+                        checked={normalizationMethod === NormalizationMethod.StandardZscore}
+                        onChange={handleSetNormalizationMethod}
+                    />
+                </label>
+            </div>
+
             <div className={'block my-1' + (standardized ? '' : ' hidden')}>
                 <label>
                     Lookback (number of weeks to use to standardize positioning):
                     <strong>
-                        {zscoreLookback}
+                        {lookback}
                     </strong>
                     <input
                         type="range"
