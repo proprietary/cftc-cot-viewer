@@ -135,7 +135,7 @@ function mean(a: ArrSlice<number>): number {
 // X_std = (X - X.min(axis=0)) / (X.max(axis=0) - X.min(axis=0))
 // X_scaled = X_std * (max - min) + min
 // See: https://scikit-learn.org/stable/modules/generated/sklearn.preprocessing.MinMaxScaler.html
-export function rollingMinMaxScaler(arr: Array<number>, lookback: number): Array<number> {
+export function rollingMinMaxScaler(arr: Array<number>, lookback: number, scaleMin: number = -1.0, scaleMax: 1.0): Array<number> {
     let dst = new Array<number>(arr.length);
     for (let idx = 0; idx < arr.length; ++idx) {
         const thisSlice: ArrSlice<number> = {
@@ -146,13 +146,13 @@ export function rollingMinMaxScaler(arr: Array<number>, lookback: number): Array
         const min_ = arrSliceMin(thisSlice);
         const max_ = arrSliceMax(thisSlice);
         let std = (arr[idx] - min_) / (max_ - min_);
-        let scaled = std * (max_ - min_) + min_;
+        let scaled = std * (scaleMax - scaleMin) + scaleMin;
         dst[idx] = scaled;
     }
     return dst;
 }
 
-export function rollingMinMaxScalerOptimized(arr: number[], lookback: number): number[] {
+export function rollingMinMaxScalerOptimized(arr: number[], lookback: number, scaleMin: number = -1.0, scaleMax: number = 1.0): number[] {
     let dst = new Array<number>(arr.length);
     let rollingMin = 0;
     let rollingMax = 0;
@@ -173,9 +173,8 @@ export function rollingMinMaxScalerOptimized(arr: number[], lookback: number): n
             rollingMax = idx;
         }
         let std = (arr[idx] - arr[rollingMin]) / (arr[rollingMax] - arr[rollingMin]);
-        let scaled = std * (arr[rollingMax] - arr[rollingMin]) + arr[rollingMin];
+        let scaled = std * (scaleMax - scaleMin) + scaleMin;
         dst[idx] = scaled;
-        console.info(arr[idx], dst[idx], std, scaled, rollingMax, rollingMin)
     }
     return dst;
 }

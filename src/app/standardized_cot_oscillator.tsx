@@ -107,7 +107,6 @@ export default function StandardizedCotOscillator<RptType extends IFinancialFutu
                         data = rollingZscore(data, lookback);
                         break;
                     case NormalizationMethod.MinMaxScaler:
-                        // data = rollingMinMaxScaler(data, lookback);
                         data = rollingMinMaxScalerOptimized(data, lookback);
                         break;
                     case NormalizationMethod.QuantileTransformer:
@@ -121,7 +120,7 @@ export default function StandardizedCotOscillator<RptType extends IFinancialFutu
                 id: traderCategoryName,
                 name: traderCategoryName,
                 data,
-                type: isNormalized && normalizationMethod === NormalizationMethod.QuantileTransformer ? 'line' : 'bar',
+                type: 'bar',
                 // barGap: '0%',
                 // barCategoryGap: '0%',
                 tooltip: {
