@@ -6,13 +6,13 @@ import React from 'react';
 import * as echarts from 'echarts/core';
 import type { BarSeriesOption } from 'echarts/charts';
 import { BarChart } from 'echarts/charts';
-import type { DatasetComponentOption, TitleComponentOption, LegendComponentOption, DataZoomComponentOption, TooltipComponentOption, ToolboxComponentOption } from 'echarts/components';
-import { TitleComponent, LegendComponent, DatasetComponent, GridComponent, TooltipComponent, GridComponentOption, ToolboxComponent, DataZoomComponent, } from 'echarts/components';
+import type { DatasetComponentOption, TitleComponentOption, LegendComponentOption, DataZoomComponentOption, TooltipComponentOption, ToolboxComponentOption, GraphicComponentOption } from 'echarts/components';
+import { TitleComponent, LegendComponent, DatasetComponent, GridComponent, TooltipComponent, GridComponentOption, ToolboxComponent, DataZoomComponent, GraphicComponent, } from 'echarts/components';
 import { IAnyCOTReportType, IDisaggregatedFuturesCOTReport, IFinancialFuturesCOTReport, ILegacyFuturesCOTReport } from './socrata_cot_report';
 import { SCREEN_LARGE, SCREEN_SMALL, formatDateYYYYMMDD, useViewportDimensions } from './util';
 import EChartsReactCore from 'echarts-for-react/lib/core';
 
-echarts.use([BarChart, TitleComponent, LegendComponent, DataZoomComponent, DatasetComponent, GridComponent]);
+echarts.use([BarChart, TitleComponent, GraphicComponent, LegendComponent, DataZoomComponent, DatasetComponent, GridComponent]);
 
 export interface IDataFrameColumns {
     column: keyof IFinancialFuturesCOTReport,
@@ -36,7 +36,7 @@ export default function CommitmentChangesChart({
     dataFrame: Array<IFinancialFuturesCOTReport>,
     cols: IDataFrameColumns[],
 }) {
-    type ECOption = echarts.ComposeOption<BarSeriesOption | GridComponentOption | LegendComponentOption | ToolboxComponentOption | DataZoomComponentOption | TooltipComponentOption>;
+    type ECOption = echarts.ComposeOption<BarSeriesOption | TitleComponentOption | GraphicComponentOption | GridComponentOption | LegendComponentOption | ToolboxComponentOption | DataZoomComponentOption | TooltipComponentOption>;
     const echartsRef = React.useRef<EChartsReactCore | null>(null);
     const [nWeeksDelta, setNWeeksDelta] = React.useState<number>(DEFAULT_N_WEEKS_DELTA);
     const [posnMethod, setPosnMethod] = React.useState<PositioningAggregationMethod>(PositioningAggregationMethod.Net);
@@ -89,11 +89,15 @@ export default function CommitmentChangesChart({
                     saveAsImage: {},
                 },
             },
+            title: {
+                show: true,
+                text: dataFrame.length > 0 ? dataFrame.at(0)!.commodity_name : '',
+            },
             tooltip: {
                 trigger: 'axis',
             },
             legend: {
-                show: true,
+                show: false,
             },
             dataZoom: {
                 show: true,
@@ -117,9 +121,16 @@ export default function CommitmentChangesChart({
                 },
                 gridIndex: idx,
             })),
-            yAxis: cols.map((_, idx) => ({
+            yAxis: cols.map(({name}, idx) => ({
                 type: 'value',
                 gridIndex: idx,
+                name,
+                nameTextStyle: {
+                    fontSize: 15,
+                    align: 'left',
+                    verticalAlign: 'top',
+                    padding: [0, 0, 5, 0],
+                }
             })),
             series: genSeries(),
         };

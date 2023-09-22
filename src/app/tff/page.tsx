@@ -19,6 +19,7 @@ import { CommodityCodes } from '@/cftc_codes_mapping';
 import { PriceBar } from '@/common_types';
 import StackedAbsValuesChart from '@/stacked_abs_values_chart';
 import CommitmentChangesChart from '@/commitment_changes_chart';
+import NumberOfTradersChart from '@/number_of_traders_chart';
 
 echarts.use([TitleComponent, LineChart, VisualMapComponent, TimelineComponent, TooltipComponent, ToolboxComponent, DataZoomComponent, LegendComponent, GridComponent, BarChart, SVGRenderer, CanvasRenderer]);
 
@@ -201,6 +202,36 @@ export default function Tff() {
                 },
               ]
             }
+          />
+        </div>
+        <div className="my-2">
+          <div className="text-lg">Number of Traders</div>
+          <NumberOfTradersChart
+          reports={tffData}
+          cols={
+            [
+              {
+                name: 'Dealers',
+                n_traders_long: 'traders_dealer_long_all',
+                n_traders_short: 'traders_dealer_short_all',
+              },
+              {
+                name: 'Asset Managers',
+                n_traders_long: 'traders_asset_mgr_long_all',
+                n_traders_short: 'traders_asset_mgr_short_all',
+              },
+              {
+                name: 'Leveraged Funds',
+                n_traders_long: 'traders_lev_money_long_all',
+                n_traders_short: 'traders_lev_money_short_all',              
+              },
+              {
+                name: 'Other Reportables',
+                n_traders_long: 'traders_other_rept_long_all',
+                n_traders_short: 'traders_other_rept_short',
+              },
+            ]
+          }
           />
         </div>
         <div className="my-2">
