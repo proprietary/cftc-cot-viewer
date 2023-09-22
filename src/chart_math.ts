@@ -1,4 +1,4 @@
-import {ArrSlice, checkArrSliceBounds, newArrSlice} from './arr_slice';
+import { ArrSlice, checkArrSliceBounds, newArrSlice } from './arr_slice';
 import { LHAssert } from './util';
 
 // A moving average that starts from the beginning of the array.
@@ -132,13 +132,72 @@ function mean(a: ArrSlice<number>): number {
 // Min-Max Scaling, a standardization method works better than z-score for data that doesn't have a Gaussian distribution.
 // It scales elements of the array into a range [-1, 1].
 // MinMaxScaled(Series)[i] = (Series[i] - Min(Series)) / (Max(Series) - Min(Series))
-// X_normalized = (X - X_min) / (X_max - X_min)
 // X_std = (X - X.min(axis=0)) / (X.max(axis=0) - X.min(axis=0))
 // X_scaled = X_std * (max - min) + min
 // See: https://scikit-learn.org/stable/modules/generated/sklearn.preprocessing.MinMaxScaler.html
-function minMaxScaler(a: ArrSlice<number>, lookback: number): Array<number> {
-    // unimplemented
-    return [];
+export function rollingMinMaxScaler(arr: Array<number>, lookback: number): Array<number> {
+    let dst = new Array<number>(arr.length);
+    for (let idx = 0; idx < arr.length; ++idx) {
+        const thisSlice: ArrSlice<number> = {
+            arr,
+            startIndex: Math.max(0, idx - lookback),
+            endIndex: idx + 1,
+        };
+        const min_ = arrSliceMin(thisSlice);
+        const max_ = arrSliceMax(thisSlice);
+        let std = (arr[idx] - min_) / (max_ - min_);
+        let scaled = std * (max_ - min_) + min_;
+        dst[idx] = scaled;
+    }
+    return dst;
+}
+
+export function rollingMinMaxScalerOptimized(arr: number[], lookback: number): number[] {
+    let dst = new Array<number>(arr.length);
+    let rollingMin = 0;
+    let rollingMax = 0;
+    for (let idx = 0; idx < arr.length; ++idx) {
+        let excludedIndex = Math.max(0, idx - lookback - 1);
+        if (excludedIndex === rollingMin) {
+            // recompute max without the excluded item to the left of this lookback window
+            rollingMin = indexWithMin({ arr, startIndex: excludedIndex + 1, endIndex: idx + 1 });
+        }
+        if (excludedIndex === rollingMax) {
+            // recompute max without the excluded item to the left of this lookback window
+            rollingMax = indexWithMax({ arr, startIndex: excludedIndex + 1, endIndex: idx + 1 });
+        }
+        if (arr[idx] < arr[rollingMin]) {
+            rollingMin = idx;
+        }
+        if (arr[idx] > arr[rollingMax]) {
+            rollingMax = idx;
+        }
+        let std = (arr[idx] - arr[rollingMin]) / (arr[rollingMax] - arr[rollingMin]);
+        let scaled = std * (arr[rollingMax] - arr[rollingMin]) + arr[rollingMin];
+        dst[idx] = scaled;
+        console.info(arr[idx], dst[idx], std, scaled, rollingMax, rollingMin)
+    }
+    return dst;
+}
+
+function indexWithMin(a: ArrSlice<number>): number {
+    let mn = a.startIndex;
+    for (let i = a.startIndex; i < a.arr.length && i < a.endIndex; ++i) {
+        if (a.arr[i] < a.arr[mn]) {
+            mn = i;
+        }
+    }
+    return mn;
+}
+
+function indexWithMax(a: ArrSlice<number>): number {
+    let mx = a.startIndex;
+    for (let i = a.startIndex; i < a.arr.length && i < a.endIndex; ++i) {
+        if (a.arr[i] > a.arr[mx]) {
+            mx = i;
+        }
+    }
+    return mx;
 }
 
 function arrSliceMin(a: ArrSlice<number>): number {
@@ -164,6 +223,7 @@ function arrSliceMax(a: ArrSlice<number>): number {
 // Robust Scaling, a normalization method that is more robust to outliers.
 // Z-scoring uses the mean and standard deviation; robust scaling uses the interquartile range.
 // X_normalized = (X - IQR(X, 1)) / (IQR(X, 3) - IQR(X, 1))
+// https://scikit-learn.org/stable/modules/generated/sklearn.preprocessing.RobustScaler.html#sklearn.preprocessing.RobustScaler
 function robustScaler(a: ArrSlice<number>): Array<number> {
     const len = a.endIndex - a.startIndex;
     let dst = new Array<number>(len);
@@ -218,4 +278,42 @@ function arrSliceMedian(a: ArrSlice<number>, isAlreadySorted: boolean = false): 
         // return the middle value
         return arr[Math.floor(len / 2)];
     }
+}
+
+function quantileTransform(a: ArrSlice<number>, scaleLow: number = -1.0, scaleHigh: number = 1.0): number[] {
+    const ranked = a.arr
+        .slice(a.startIndex, a.endIndex)
+        .map((value, originalIndex) => ([value, originalIndex]))
+        .sort(([aValue, aOriginalIndex], [bValue, bOriginalIndex]) => aValue - bValue)
+        .map(([_, originalIndex]) => originalIndex);
+    let transformed: number[] = [];
+    for (let i = a.startIndex; i < a.arr.length && i < a.endIndex; ++i) {
+        const rank = ranked.indexOf(i - a.startIndex);
+        const rawPercentile = rank / (ranked.length - 1);
+        let percentileInScale = scaleLow + (scaleHigh - scaleLow) * rawPercentile;
+        transformed.push(percentileInScale);
+    }
+    return transformed;
+}
+
+function quantileTransformAt(a: ArrSlice<number>, atIndex: number, scaleLow: number = -1.0, scaleHigh: number = 1.0): number {
+    const ranked = a.arr
+        .slice(a.startIndex, a.endIndex)
+        .map((value, originalIndex) => ([value, originalIndex]))
+        .sort(([aValue, _a], [bValue, _b]) => aValue - bValue)
+        .map(([_, originalIndex]) => originalIndex);
+    const rank = ranked.indexOf(atIndex);
+    const rawPercentile = rank / (ranked.length - 1);
+    const percentileInScale = scaleLow + (scaleHigh - scaleLow) * rawPercentile;
+    return percentileInScale;
+}
+
+export function rollingQuantileNormalization(arr: Array<number>, lookback: number): number[] {
+    let dst: number[] = [];
+    for (let i = 0; i < arr.length; ++i) {
+        const startIndex = Math.max(0, i - lookback);
+        let intermediateResult = quantileTransformAt({arr, startIndex, endIndex: i + 1}, i - startIndex);
+        dst.push(intermediateResult);
+    }
+    return dst;
 }

@@ -7,7 +7,7 @@ import { TitleComponent, GridComponent, LegendComponent, TooltipComponent, Toolb
 import { BarChart, LineChart } from 'echarts/charts';
 import { SVGRenderer, CanvasRenderer } from 'echarts/renderers';
 import { IDisaggregatedFuturesCOTReport, IFinancialFuturesCOTReport, ILegacyFuturesCOTReport, ITraderCategory } from '@/socrata_cot_report';
-import { rollingRobustScaler, rollingZscore } from '@/chart_math';
+import { rollingMinMaxScaler, rollingMinMaxScalerOptimized, rollingQuantileNormalization, rollingRobustScaler, rollingZscore } from '@/chart_math';
 import { SCREEN_LARGE, SCREEN_MEDIUM, SCREEN_SMALL, useViewportDimensions, usePrevious } from '@/util';
 import { PriceBar } from '@/common_types';
 
@@ -60,7 +60,9 @@ const defaultLookback = 50;
 
 enum NormalizationMethod {
     StandardZscore = 'zscore',
-    RobustScaling = 'robust-scaling',
+    RobustScaler = 'robust-scaler',
+    MinMaxScaler = 'min-max-scaler',
+    QuantileTransformer = 'quantile-transformer',
 };
 
 export default function StandardizedCotOscillator<RptType extends IFinancialFuturesCOTReport | IDisaggregatedFuturesCOTReport | ILegacyFuturesCOTReport>(
@@ -83,25 +85,33 @@ export default function StandardizedCotOscillator<RptType extends IFinancialFutu
     const echartsRef = React.useRef<EChartsReactCore | null>(null);
     let legendSelected = React.useRef<{ [name: string]: boolean } | null>(null);
     let rememberedDataZoom = React.useRef<[number, number] | null>(null);
-    const [standardized, setStandardized] = React.useState<boolean>(true);
-    const [normalizationMethod, setNormalizationMethod] = React.useState<NormalizationMethod>(NormalizationMethod.RobustScaling);
+    const [isNormalized, setStandardized] = React.useState<boolean>(true);
+    const [normalizationMethod, setNormalizationMethod] = React.useState<NormalizationMethod>(NormalizationMethod.RobustScaler);
     const [lookback, setLookback] = React.useState<number>(defaultLookback);
-    const computeSeries = React.useCallback((zs: number, standardized: boolean, normalizationMethod: NormalizationMethod) => {
+    const computeSeries = React.useCallback((lookback: number, isNormalized: boolean, normalizationMethod: NormalizationMethod) => {
         let series: any = [];
         for (const traderCategoryName of Object.keys(columns)) {
             let data: number[] = [...columns[traderCategoryName].data];
-            if (standardized) {
-                let divisor = columns[traderCategoryName].normalizingDivisor;
-                if (divisor != null && divisor > 0) {
-                    for (let i = 0; i < data.length; ++i)
-                        data[i] /= divisor;
-                }
+            let divisor = columns[traderCategoryName].normalizingDivisor;
+            if (divisor != null && divisor > 0) {
+                for (let i = 0; i < data.length; ++i)
+                    data[i] /= divisor;
+            }
+
+            if (isNormalized) {
                 switch (normalizationMethod) {
-                    case NormalizationMethod.RobustScaling:
-                        data = rollingRobustScaler(data, zs);
+                    case NormalizationMethod.RobustScaler:
+                        data = rollingRobustScaler(data, lookback);
                         break;
                     case NormalizationMethod.StandardZscore:
-                        data = rollingZscore(data, zs);
+                        data = rollingZscore(data, lookback);
+                        break;
+                    case NormalizationMethod.MinMaxScaler:
+                        // data = rollingMinMaxScaler(data, lookback);
+                        data = rollingMinMaxScalerOptimized(data, lookback);
+                        break;
+                    case NormalizationMethod.QuantileTransformer:
+                        data = rollingQuantileNormalization(data, lookback);
                         break;
                     default:
                         throw new Error('unknown normalization method; this should be unreachable');
@@ -111,10 +121,12 @@ export default function StandardizedCotOscillator<RptType extends IFinancialFutu
                 id: traderCategoryName,
                 name: traderCategoryName,
                 data,
-                type: 'bar',
+                type: isNormalized && normalizationMethod === NormalizationMethod.QuantileTransformer ? 'line' : 'bar',
+                // barGap: '0%',
+                // barCategoryGap: '0%',
                 tooltip: {
                     valueFormatter: (value: string | number): string => {
-                        if (standardized && typeof value === 'number')
+                        if (isNormalized && typeof value === 'number')
                             return `${(value as number).toFixed(5)}σ`;
                         return value.toString();
                     },
@@ -160,7 +172,7 @@ export default function StandardizedCotOscillator<RptType extends IFinancialFutu
                     ...dataZoomInner,
                 }
             ],
-            series: computeSeries(lookback, standardized, normalizationMethod),
+            series: computeSeries(lookback, isNormalized, normalizationMethod),
             xAxis: [
                 {
                     data: xAxisDates.map(x => x.toLocaleDateString()),
@@ -171,7 +183,7 @@ export default function StandardizedCotOscillator<RptType extends IFinancialFutu
                 {
                     id: 'cot-net-positioning-axis',
                     type: 'value',
-                    name: `${yAxisLabel}` + (standardized ? ` (${lookback}w lookback z-score)` : ''),
+                    name: `${yAxisLabel}` + (isNormalized ? ` (${lookback}w lookback z-score)` : ''),
                     nameRotate: '90',
                     nameTextStyle: {
                         verticalAlign: 'middle',
@@ -203,14 +215,14 @@ export default function StandardizedCotOscillator<RptType extends IFinancialFutu
         }
 
         return dst;
-    }, [xAxisDates, columns, yAxisLabel, rememberedDataZoom, lookback, standardized, normalizationMethod]);
+    }, [xAxisDates, columns, yAxisLabel, rememberedDataZoom, lookback, isNormalized, normalizationMethod]);
 
     const handleChangeZsLookback = React.useCallback((ev: React.ChangeEvent<HTMLInputElement>) => {
         const n = parseInt(ev.target.value);
         setLookback(n);
     }, []);
 
-    const handleSetStandardized = React.useCallback((ev: React.ChangeEvent<HTMLInputElement>) => {
+    const toggleNormalized = React.useCallback((ev: React.ChangeEvent<HTMLInputElement>) => {
         const b = ev.target.checked;
         setStandardized(b);
     }, []);
@@ -240,7 +252,7 @@ export default function StandardizedCotOscillator<RptType extends IFinancialFutu
                 100.
             ];
         }
-    }, [columns, xAxisDates, legendSelected, rememberedDataZoom, standardized, lookback]);
+    }, [columns, xAxisDates, legendSelected, rememberedDataZoom, isNormalized, lookback, normalizationMethod]);
 
     // compute breakpoints for the ECharts instance; making it responsive
     const viewportDimensions = useViewportDimensions();
@@ -258,15 +270,15 @@ export default function StandardizedCotOscillator<RptType extends IFinancialFutu
         <div className="my-5">
             <div className="block my-2">
                 <label>
-                    Standardized? <input type="checkbox" onChange={handleSetStandardized} checked={standardized} />
+                    Normalized? <input type="checkbox" onChange={toggleNormalized} checked={isNormalized} />
                 </label>
             </div>
 
             <div className="block m-2">
                 <label>
-                    Robust Scaling
-                    <input type="radio" value={NormalizationMethod.RobustScaling}
-                        checked={normalizationMethod === NormalizationMethod.RobustScaling}
+                    Robust Scaler
+                    <input type="radio" value={NormalizationMethod.RobustScaler}
+                        checked={normalizationMethod === NormalizationMethod.RobustScaler}
                         onChange={handleSetNormalizationMethod}
                     />
                 </label>
@@ -277,9 +289,23 @@ export default function StandardizedCotOscillator<RptType extends IFinancialFutu
                         onChange={handleSetNormalizationMethod}
                     />
                 </label>
+                <label>
+                    Min-Max Scaler
+                    <input type="radio" value={NormalizationMethod.MinMaxScaler}
+                        checked={normalizationMethod === NormalizationMethod.MinMaxScaler}
+                        onChange={handleSetNormalizationMethod}
+                    />
+                </label>
+                <label>
+                    Percentiles
+                    <input type="radio" value={NormalizationMethod.QuantileTransformer}
+                        checked={normalizationMethod === NormalizationMethod.QuantileTransformer}
+                        onChange={handleSetNormalizationMethod}
+                    />
+                </label>
             </div>
 
-            <div className={'block my-1' + (standardized ? '' : ' hidden')}>
+            <div className={'block my-1' + (isNormalized ? '' : ' hidden')}>
                 <label>
                     Lookback (number of weeks to use to standardize positioning):
                     <strong>
