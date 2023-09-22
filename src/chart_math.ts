@@ -257,16 +257,16 @@ export function rollingRobustScaler(a: Array<number>, lookback: number): Array<n
 
 function arrSliceInterQuartileRange(a: ArrSlice<number>): [q1: number, q3: number] {
     let arr = a.arr.slice(a.startIndex, a.endIndex).sort((a, b) => a - b);
-    let q1 = arrSliceMedian({ arr, startIndex: 0, endIndex: arr.length / 2 }, true);
-    let q3 = arrSliceMedian({ arr, startIndex: arr.length / 2, endIndex: arr.length }, true);
+    let q1 = arrSliceMedian({ arr, startIndex: 0, endIndex: Math.floor(arr.length / 2) }, true);
+    let q3 = arrSliceMedian({ arr, startIndex: Math.ceil(arr.length / 2), endIndex: arr.length }, true);
     return [q1, q3];
 }
 
 function arrSliceMedian(a: ArrSlice<number>, isAlreadySorted: boolean = false): number {
     const len = a.endIndex - a.startIndex;
-    let arr = a.arr;
+    let arr = a.arr.slice(a.startIndex, a.endIndex);
     if (!isAlreadySorted) {
-        arr = a.arr.slice(a.startIndex, a.endIndex).sort((a, b) => a - b);
+        arr.sort((a, b) => a - b);
     }
     if (len % 2 === 0) {
         // if there are an even number of elements, take the average of the two middle elements
