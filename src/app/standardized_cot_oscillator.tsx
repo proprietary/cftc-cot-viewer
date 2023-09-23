@@ -200,6 +200,7 @@ export default function StandardizedCotOscillator(
                 {
                     type: 'category',
                     data: xAxisDates,
+                    boundaryGap: false,
                 },
             ],
             yAxis: [

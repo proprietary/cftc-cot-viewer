@@ -21,6 +21,7 @@ import StackedAbsValuesChart from '@/stacked_abs_values_chart';
 import CommitmentChangesChart from '@/commitment_changes_chart';
 import NumberOfTradersChart from '@/number_of_traders_chart';
 import OpenInterestChangesNormalizedChart from '../open_interest_changes_normalized_chart';
+import LongShortOIChart from '@/long_short_oi_chart';
 
 echarts.use([TitleComponent, LineChart, VisualMapComponent, TimelineComponent, TooltipComponent, ToolboxComponent, DataZoomComponent, LegendComponent, GridComponent, BarChart, SVGRenderer, CanvasRenderer]);
 
@@ -183,7 +184,25 @@ export default function Tff() {
             data={tffData}
           />
         </div>
+        <div className="my-2">
+          <div className="text-lg">Long and Short Open Interest</div>
+          <LongShortOIChart
+            data={tffData}
+            longCols={[{ name: 'Dealers', column: 'dealer_positions_long_all', },
+            { name: 'Asset Managers', column: 'asset_mgr_positions_long', },
+            { name: 'Leveraged Funds', column: 'lev_money_positions_long', },
+            { name: 'Other Reportables', column: 'other_rept_positions_long', },
+            { name: 'Non-Reportables', column: 'nonrept_positions_long_all', },
+            ]}
+            shortCols={[
+              { name: 'Dealers', column: 'dealer_positions_short_all', },
+              { name: 'Asset Managers', column: 'asset_mgr_positions_short', },
+              { name: 'Leveraged Funds', column: 'lev_money_positions_short', },
+              { name: 'Other Reportables', column: 'other_rept_positions_short', },
+              { name: 'Non-Reportables', column: 'nonrept_positions_short_all', },
 
+            ]} />
+        </div>
         <div className="my-2">
           <div className="text-lg">Changes in Commitments over N weeks</div>
           <CommitmentChangesChart dataFrame={tffData}

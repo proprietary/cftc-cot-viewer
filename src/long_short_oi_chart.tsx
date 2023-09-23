@@ -26,9 +26,20 @@ type ECOption = echarts.ComposeOption<
     GridComponentOption
 >;
 
-export default function StackedAbsValuesChart({ cols, data }: { data: IAnyCOTReportType[], cols: IDataFrameColumns[] }) {
+export default function LongShortOIChart(
+    {
+        longCols,
+        shortCols,
+        data
+    }: {
+        data: IAnyCOTReportType[],
+        longCols: IDataFrameColumns[],
+        shortCols: IDataFrameColumns[],
+    }
+)
+    {
     const generateOptions = (): ECOption => {
-        const series: LineSeriesOption[] = cols.map(({ name, column }) => {
+        const longSeries: LineSeriesOption[] = longCols.map(({ name, column }) => {
             return {
                 type: 'line',
                 name,
@@ -38,7 +49,7 @@ export default function StackedAbsValuesChart({ cols, data }: { data: IAnyCOTRep
                 },
                 smooth: true,
                 areaStyle: {},
-                stack: 'Total',
+                stack: 'total_longs',
                 lineStyle: {
                     width: 0,
                 },
@@ -46,6 +57,30 @@ export default function StackedAbsValuesChart({ cols, data }: { data: IAnyCOTRep
                 emphasis: {
                     focus: 'series',
                 },
+                xAxisIndex: 0,
+                yAxisIndex: 0,
+            };
+        });
+        const shortSeries: LineSeriesOption[] = shortCols.map(({ name, column }) => {
+            return {
+                type: 'line',
+                name,
+                encode: {
+                    x: 'timestamp',
+                    y: column as string,
+                },
+                smooth: true,
+                areaStyle: {},
+                stack: 'total_shorts',
+                lineStyle: {
+                    width: 0,
+                },
+                showSymbol: false,
+                emphasis: {
+                    focus: 'series',
+                },
+                xAxisIndex: 1,
+                yAxisIndex: 1,
             };
         });
         return {
@@ -67,19 +102,28 @@ export default function StackedAbsValuesChart({ cols, data }: { data: IAnyCOTRep
             legend: {
                 show: true,
             },
-            grid: {
-                containLabel: true,
-            },
+            grid: [
+                {
+                    containLabel: true,
+                    top: '5%',
+                    bottom: '55%',
+                },
+                {
+                    containLabel: true,
+                    top: '55%',
+                    bottom: '5%',
+                },
+            ],
             dataset: {
                 source: data,
                 dimensions: Object.keys(data.at(0) ?? {}),
             },
             dataZoom: [
                 {
-                    id: 'cot-abs-vals-stacked-area-chart',
                     type: 'slider',
                     filterMode: 'filter',
-                    start: 80,
+                    start: 100. * Math.max(data.length - defaultDataZoomWeeks, 0) / data.length,
+                    xAxisIndex: [0, 1],
                 },
             ],
             xAxis: [
@@ -91,15 +135,48 @@ export default function StackedAbsValuesChart({ cols, data }: { data: IAnyCOTRep
                             return formatDateYYYYMMDD(d);
                         }
                     },
+                    gridIndex: 0,
+                    // data: xAxisData.map(x => formatDateYYYYMMDD(x)),
+                },
+                {
+                    type: 'time',
+                    axisLabel: {
+                        formatter: (value: any) => {
+                            let d = new Date(value);
+                            return formatDateYYYYMMDD(d);
+                        }
+                    },
+                    gridIndex: 1,
                     // data: xAxisData.map(x => formatDateYYYYMMDD(x)),
                 },
             ],
             yAxis: [
                 {
                     type: 'value',
+                    gridIndex: 0,
+                    scale: true,
+                    name: 'Longs',
+                    nameTextStyle: {
+                        fontSize: 20,
+                        fontWeight: 'bold',
+                        align: 'left',
+                        verticalAlign: 'top',
+                    },
+                },
+                {
+                    type: 'value',
+                    gridIndex: 1,
+                    scale: true,
+                    name: 'Shorts',
+                    nameTextStyle: {
+                        fontSize: 20,
+                        fontWeight: 'bold',
+                        align: 'left',
+                        verticalAlign: 'top',
+                    },
                 },
             ],
-            series,
+            series: [...longSeries, ...shortSeries],
         };
     }
 
@@ -131,3 +208,5 @@ export default function StackedAbsValuesChart({ cols, data }: { data: IAnyCOTRep
         </div>
     )
 }
+
+const defaultDataZoomWeeks = 20;
