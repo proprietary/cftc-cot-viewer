@@ -9,7 +9,9 @@ import { BarChart, LineChart } from 'echarts/charts';
 import { SVGRenderer, CanvasRenderer } from 'echarts/renderers';
 import { useRouter } from 'next/navigation';
 import { useSearchParams, usePathname } from 'next/navigation';
-import { CachingCFTCApi, ContractListRequest, CFTCReportType, CommodityContractKind } from '@/cftc_api';
+import { CachingCFTCApi, ContractListRequest } from '@/cftc_api';
+import { CFTCReportType } from "@/common_types";
+import { CommodityContractKind } from "@/socrata_api";
 import { IFinancialFuturesCOTReport } from '@/socrata_cot_report';
 import { rollingZscore } from '@/chart_math';
 import { SCREEN_LARGE, SCREEN_MEDIUM, SCREEN_SMALL, useViewportDimensions, usePrevious, formatDateYYYYMMDD } from '@/util';
@@ -138,7 +140,7 @@ export default function Tff() {
             <abbr title="Net of Longs minus Shorts held by traders in the given category (Long - Short = Net)">Longs - Shorts</abbr>
           </div>
           <StandardizedCotOscillator
-            yAxisLabel='Net Exposure as a Percent of Open Interest'
+            yAxisLabel='Net Exposure as % Open Interest'
             plottedColumns={[
               { name: 'Dealers', data: tffData.map(x => (x.dealer_positions_long_all - x.dealer_positions_short_all) / x.open_interest_all) },
               { name: 'Asset Managers', data: tffData.map(x => (x.asset_mgr_positions_long - x.asset_mgr_positions_short) / x.open_interest_all) },

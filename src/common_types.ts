@@ -13,3 +13,16 @@ export interface IPriceFeed {
     symbol: string,
     transforms?: Function[],
 };
+export enum CFTCReportType {
+    FinancialFutures,
+    Disaggregated,
+    Legacy
+}
+
+export enum CFTCCommodityGroupType {
+    Financial = "FINANCIAL INSTRUMENTS",
+    NaturalResources = "NATURAL RESOURCES",
+    Agriculture = "AGRICULTURE"
+}
+
+export type CFTCContractMarketCode = string;

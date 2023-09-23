@@ -4,7 +4,9 @@ import React from 'react';
 import { useRouter } from 'next/navigation';
 import { useSearchParams, usePathname } from 'next/navigation';
 
-import { CachingCFTCApi, CFTCReportType, ContractListRequest, CommodityContractKind } from '@/cftc_api';
+import { CachingCFTCApi, ContractListRequest } from '@/cftc_api';
+import { CFTCReportType } from "@/common_types";
+import { CommodityContractKind } from "@/socrata_api";
 import StandardizedCotOscillator from '../standardized_cot_oscillator';
 
 export default function Disaggregated() {
