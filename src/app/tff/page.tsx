@@ -12,7 +12,7 @@ import { useSearchParams, usePathname } from 'next/navigation';
 import { CachingCFTCApi, ContractListRequest, CFTCReportType, CommodityContractKind } from '@/cftc_api';
 import { IFinancialFuturesCOTReport } from '@/socrata_cot_report';
 import { rollingZscore } from '@/chart_math';
-import { SCREEN_LARGE, SCREEN_MEDIUM, SCREEN_SMALL, useViewportDimensions, usePrevious } from '@/util';
+import { SCREEN_LARGE, SCREEN_MEDIUM, SCREEN_SMALL, useViewportDimensions, usePrevious, formatDateYYYYMMDD } from '@/util';
 import StandardizedCotOscillator from '../standardized_cot_oscillator';
 import { CommodityInfoService } from '@/commodity_info';
 import { CommodityCodes } from '@/cftc_codes_mapping';
@@ -136,14 +136,14 @@ export default function Tff() {
             <abbr title="Net of Longs minus Shorts held by traders in the given category (Long - Short = Net)">Longs - Shorts</abbr>
           </div>
           <StandardizedCotOscillator
-            columns={{
-              'Dealers': { data: tffData.map(x => x.dealer_positions_long_all - x.dealer_positions_short_all), normalizingDivisor: tffData.at(0)?.open_interest_all },
-              'Asset Managers': { data: tffData.map(x => x.asset_mgr_positions_long - x.asset_mgr_positions_short), normalizingDivisor: tffData.at(0)?.open_interest_all },
-              'Leveraged Funds': { data: tffData.map(x => x.lev_money_positions_long - x.lev_money_positions_short), normalizingDivisor: tffData.at(0)?.open_interest_all },
-              'Other Reportables': { data: tffData.map(x => x.other_rept_positions_long - x.other_rept_positions_short), normalizingDivisor: tffData.at(0)?.open_interest_all, },
-              'Non-Reportables': { data: tffData.map(x => x.nonrept_positions_long_all - x.nonrept_positions_short_all), normalizingDivisor: tffData.at(0)?.open_interest_all, },
-            }}
-            xAxisDates={tffData.map(x => new Date(x.timestamp))}
+            plottedColumns={[
+              { name: 'Dealers', data: tffData.map(x => x.dealer_positions_long_all - x.dealer_positions_short_all) },
+              { name: 'Asset Managers', data: tffData.map(x => x.asset_mgr_positions_long - x.asset_mgr_positions_short) },
+              { name: 'Leveraged Funds', data: tffData.map(x => x.lev_money_positions_long - x.lev_money_positions_short) },
+              { name: 'Other Reportables', data: tffData.map(x => x.other_rept_positions_long - x.other_rept_positions_short) },
+              { name: 'Non-Reportables', data: tffData.map(x => x.nonrept_positions_long_all - x.nonrept_positions_short_all) },
+            ]}
+            xAxisDates={tffData.map(x => formatDateYYYYMMDD(new Date(x.timestamp)))}
             title={tffData.at(0)?.contract_market_name}
             loading={loading}
             priceData={priceData}

@@ -10,10 +10,10 @@ import { IDisaggregatedFuturesCOTReport, IFinancialFuturesCOTReport, ILegacyFutu
 import { rollingMinMaxScaler, rollingMinMaxScalerOptimized, rollingQuantileNormalization, rollingRobustScaler, rollingZscore } from '@/chart_math';
 import { SCREEN_LARGE, SCREEN_MEDIUM, SCREEN_SMALL, useViewportDimensions, usePrevious } from '@/util';
 import { PriceBar } from '@/common_types';
+import useLargeChartDimensions from '@/large_chart_dims_hook';
 
 echarts.use([TitleComponent, LineChart, VisualMapComponent, TimelineComponent, TooltipComponent, ToolboxComponent, DataZoomComponent, LegendComponent, GridComponent, BarChart, SVGRenderer, CanvasRenderer]);
 
-const zscoreTooltipFormatter = (zscore: number) => `${zscore.toFixed(5)} σ`;
 const defaultWeeksZoom = 50; // default number of weeks the zoom slider should have in width
 
 interface ITraderCategoryColumn {
@@ -56,84 +56,108 @@ function extractZscoredPositioning<RptType extends IFinancialFuturesCOTReport | 
     return dst;
 }
 
+export interface IPlottedColumn {
+    name: string,
+    data: number[],
+}
+
 const defaultLookback = 50;
 
 enum NormalizationMethod {
+    None = 'none',
     StandardZscore = 'zscore',
     RobustScaler = 'robust-scaler',
     MinMaxScaler = 'min-max-scaler',
     QuantileTransformer = 'quantile-transformer',
 };
 
-export default function StandardizedCotOscillator<RptType extends IFinancialFuturesCOTReport | IDisaggregatedFuturesCOTReport | ILegacyFuturesCOTReport>(
+const tooltipFormatters: Record<NormalizationMethod, (value: string | number) => string> = {
+    [NormalizationMethod.None]: (value) => value.toString(),
+    [NormalizationMethod.StandardZscore]: (value: string | number): string => {
+        let n = value;
+        if (typeof value !== 'number') {
+            n = parseFloat(value);
+        }
+        return `${(n as number).toFixed(5)}σ`
+    },
+    [NormalizationMethod.RobustScaler]: (value) => value.toString(),
+    [NormalizationMethod.MinMaxScaler]: (value) => value.toString(),
+    [NormalizationMethod.QuantileTransformer]: (value: string | number) => {
+        let n = value;
+        if (typeof value !== 'number') {
+            n = parseFloat(value);
+        }
+        return `${(100 * (n as number)).toFixed(0)}%`;
+    },
+};
+
+const yAxisLabels: Record<NormalizationMethod, (label: string) => string> = {
+    [NormalizationMethod.StandardZscore]: (label) => `${label} - σ (standard deviations)`,
+    [NormalizationMethod.QuantileTransformer]: (label) => `${label} - %ile`,
+    [NormalizationMethod.RobustScaler]: label => label,
+    [NormalizationMethod.MinMaxScaler]: label => label,
+    [NormalizationMethod.None]: label => label,
+}
+
+export default function StandardizedCotOscillator(
     {
         xAxisDates,
-        columns,
+        plottedColumns,
         title = '',
         yAxisLabel = 'Net Positioning',
         loading = false,
         priceData,
     }: {
-        xAxisDates: Date[],
-        columns: ITraderCategoryColumn,
+        xAxisDates: readonly string[],
+        plottedColumns: readonly IPlottedColumn[],
         title?: string,
         loading?: boolean,
         yAxisLabel?: string,
-        priceData?: PriceBar[],
+        priceData?: readonly PriceBar[],
     },
 ) {
     const echartsRef = React.useRef<EChartsReactCore | null>(null);
     let legendSelected = React.useRef<{ [name: string]: boolean } | null>(null);
     let rememberedDataZoom = React.useRef<[number, number] | null>(null);
-    const [isNormalized, setStandardized] = React.useState<boolean>(true);
     const [normalizationMethod, setNormalizationMethod] = React.useState<NormalizationMethod>(NormalizationMethod.RobustScaler);
     const [lookback, setLookback] = React.useState<number>(defaultLookback);
-    const computeSeries = React.useCallback((lookback: number, isNormalized: boolean, normalizationMethod: NormalizationMethod) => {
+    const computeSeries = React.useCallback((lookback: number, normalizationMethod: NormalizationMethod) => {
         let series: any = [];
-        for (const traderCategoryName of Object.keys(columns)) {
-            let data: number[] = [...columns[traderCategoryName].data];
-            let divisor = columns[traderCategoryName].normalizingDivisor;
-            if (divisor != null && divisor > 0) {
-                for (let i = 0; i < data.length; ++i)
-                    data[i] /= divisor;
-            }
-
-            if (isNormalized) {
-                switch (normalizationMethod) {
-                    case NormalizationMethod.RobustScaler:
-                        data = rollingRobustScaler(data, lookback);
-                        break;
-                    case NormalizationMethod.StandardZscore:
-                        data = rollingZscore(data, lookback);
-                        break;
-                    case NormalizationMethod.MinMaxScaler:
-                        data = rollingMinMaxScalerOptimized(data, lookback);
-                        break;
-                    case NormalizationMethod.QuantileTransformer:
-                        data = rollingQuantileNormalization(data, lookback);
-                        break;
-                    default:
-                        throw new Error('unknown normalization method; this should be unreachable');
-                }
+        for (const column of plottedColumns) {
+            let data: number[] = [];
+            switch (normalizationMethod) {
+                case NormalizationMethod.None:
+                    data = column.data;
+                    break;
+                case NormalizationMethod.RobustScaler:
+                    data = rollingRobustScaler(column.data, lookback);
+                    break;
+                case NormalizationMethod.StandardZscore:
+                    data = rollingZscore(column.data, lookback);
+                    break;
+                case NormalizationMethod.MinMaxScaler:
+                    data = rollingMinMaxScalerOptimized(column.data, lookback);
+                    break;
+                case NormalizationMethod.QuantileTransformer:
+                    data = rollingQuantileNormalization(column.data, lookback);
+                    break;
+                default:
+                    throw new Error('unknown normalization method; this should be unreachable');
             }
             series.push({
-                id: traderCategoryName,
-                name: traderCategoryName,
+                id: column.name,
+                name: column.name,
                 data,
                 type: 'bar',
                 // barGap: '0%',
                 // barCategoryGap: '0%',
                 tooltip: {
-                    valueFormatter: (value: string | number): string => {
-                        if (isNormalized && typeof value === 'number')
-                            return `${(value as number).toFixed(5)}σ`;
-                        return value.toString();
-                    },
-                },
+                    valueFormatter: tooltipFormatters[normalizationMethod],
+                }
             });
         }
         return series;
-    }, [columns]);
+    }, [plottedColumns]);
 
     const genEchartsOption = React.useCallback(() => {
         let dataZoomInner: { start?: number, end?: number } = {};
@@ -171,18 +195,18 @@ export default function StandardizedCotOscillator<RptType extends IFinancialFutu
                     ...dataZoomInner,
                 }
             ],
-            series: computeSeries(lookback, isNormalized, normalizationMethod),
+            series: computeSeries(lookback, normalizationMethod),
             xAxis: [
                 {
-                    data: xAxisDates.map(x => x.toLocaleDateString()),
                     type: 'category',
+                    data: xAxisDates,
                 },
             ],
             yAxis: [
                 {
                     id: 'cot-net-positioning-axis',
                     type: 'value',
-                    name: `${yAxisLabel}` + (isNormalized ? ` (${lookback}w lookback z-score)` : ''),
+                    name: yAxisLabels[normalizationMethod](yAxisLabel),
                     nameRotate: '90',
                     nameTextStyle: {
                         verticalAlign: 'middle',
@@ -190,6 +214,7 @@ export default function StandardizedCotOscillator<RptType extends IFinancialFutu
                     },
                     nameLocation: 'middle',
                     nameGap: 40,
+                    scale: true,
                 },
             ],
             title: {
@@ -214,16 +239,11 @@ export default function StandardizedCotOscillator<RptType extends IFinancialFutu
         }
 
         return dst;
-    }, [xAxisDates, columns, yAxisLabel, rememberedDataZoom, lookback, isNormalized, normalizationMethod]);
+    }, [xAxisDates, plottedColumns, yAxisLabel, rememberedDataZoom, lookback, normalizationMethod]);
 
     const handleChangeZsLookback = React.useCallback((ev: React.ChangeEvent<HTMLInputElement>) => {
         const n = parseInt(ev.target.value);
         setLookback(n);
-    }, []);
-
-    const toggleNormalized = React.useCallback((ev: React.ChangeEvent<HTMLInputElement>) => {
-        const b = ev.target.checked;
-        setStandardized(b);
     }, []);
 
     const handleSetNormalizationMethod = React.useCallback((ev: React.ChangeEvent<HTMLInputElement>) => {
@@ -251,28 +271,13 @@ export default function StandardizedCotOscillator<RptType extends IFinancialFutu
                 100.
             ];
         }
-    }, [columns, xAxisDates, legendSelected, rememberedDataZoom, isNormalized, lookback, normalizationMethod]);
+    }, [plottedColumns, xAxisDates, legendSelected, rememberedDataZoom, lookback, normalizationMethod]);
 
     // compute breakpoints for the ECharts instance; making it responsive
-    const viewportDimensions = useViewportDimensions();
-    let { height: eChartsHeight, width: eChartsWidth } = viewportDimensions;
-    if (viewportDimensions.width >= SCREEN_SMALL) {
-        eChartsWidth = viewportDimensions.width * 0.99;
-        eChartsHeight = viewportDimensions.height * 0.99;
-    }
-    if (viewportDimensions.width >= SCREEN_LARGE) {
-        eChartsWidth = viewportDimensions.width * 0.8;
-        eChartsHeight = viewportDimensions.height * 0.8;
-    }
+    let { eChartsWidth, eChartsHeight } = useLargeChartDimensions();
 
     return (
         <div className="my-5">
-            <div className="block my-2">
-                <label>
-                    Normalized? <input type="checkbox" onChange={toggleNormalized} checked={isNormalized} />
-                </label>
-            </div>
-
             <div className="block m-2">
                 <label>
                     Robust Scaler
@@ -302,9 +307,16 @@ export default function StandardizedCotOscillator<RptType extends IFinancialFutu
                         onChange={handleSetNormalizationMethod}
                     />
                 </label>
+                <label>
+                    None (view raw data without preprocessing)
+                    <input type="radio" value={NormalizationMethod.None}
+                        checked={normalizationMethod === NormalizationMethod.None}
+                        onChange={handleSetNormalizationMethod}
+                    />
+                </label>
             </div>
 
-            <div className={'block my-1' + (isNormalized ? '' : ' hidden')}>
+            <div className="block my-1">
                 <label>
                     Lookback (number of weeks to use to standardize positioning):
                     <strong>
@@ -321,7 +333,7 @@ export default function StandardizedCotOscillator<RptType extends IFinancialFutu
                 <EChartsReactCore
                     echarts={echarts}
                     ref={(ref) => { echartsRef.current = ref; }}
-                    showLoading={loading || columns == null}
+                    showLoading={loading || plottedColumns == null}
                     option={genEchartsOption()}
                     theme={"dark"}
                     onEvents={{
@@ -333,8 +345,8 @@ export default function StandardizedCotOscillator<RptType extends IFinancialFutu
                         },
                     }}
                     style={{
-                        height: viewportDimensions.height * .8,
-                        width: viewportDimensions.width < 640 ? viewportDimensions.width * 1.0 : viewportDimensions.width * 0.9,
+                        height: eChartsHeight,
+                        width: eChartsWidth,
                     }} />
             </div>
         </div>
