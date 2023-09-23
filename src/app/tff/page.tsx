@@ -139,11 +139,11 @@ export default function Tff() {
           <StandardizedCotOscillator
             yAxisLabel='Net Exposure as a Percent of Open Interest'
             plottedColumns={[
-              { name: 'Dealers', data: tffData.map(x => (x.dealer_positions_long_all - x.dealer_positions_short_all)/x.open_interest_all) },
-              { name: 'Asset Managers', data: tffData.map(x => (x.asset_mgr_positions_long - x.asset_mgr_positions_short)/x.open_interest_all) },
-              { name: 'Leveraged Funds', data: tffData.map(x => (x.lev_money_positions_long - x.lev_money_positions_short)/x.open_interest_all) },
-              { name: 'Other Reportables', data: tffData.map(x => (x.other_rept_positions_long - x.other_rept_positions_short)/x.open_interest_all) },
-              { name: 'Non-Reportables', data: tffData.map(x => (x.nonrept_positions_long_all - x.nonrept_positions_short_all)/x.open_interest_all) },
+              { name: 'Dealers', data: tffData.map(x => (x.dealer_positions_long_all - x.dealer_positions_short_all) / x.open_interest_all) },
+              { name: 'Asset Managers', data: tffData.map(x => (x.asset_mgr_positions_long - x.asset_mgr_positions_short) / x.open_interest_all) },
+              { name: 'Leveraged Funds', data: tffData.map(x => (x.lev_money_positions_long - x.lev_money_positions_short) / x.open_interest_all) },
+              { name: 'Other Reportables', data: tffData.map(x => (x.other_rept_positions_long - x.other_rept_positions_short) / x.open_interest_all) },
+              { name: 'Non-Reportables', data: tffData.map(x => (x.nonrept_positions_long_all - x.nonrept_positions_short_all) / x.open_interest_all) },
             ]}
             xAxisDates={tffData.map(x => formatDateYYYYMMDD(new Date(x.timestamp)))}
             title={tffData.at(0)?.contract_market_name}
@@ -153,7 +153,7 @@ export default function Tff() {
         </div>
         <div className="my-2">
           <div className="text-lg">
-            Open Interest
+            Longs
           </div>
           <StackedAbsValuesChart cols={
             [
@@ -167,6 +167,23 @@ export default function Tff() {
             data={tffData}
           />
         </div>
+        <div className="my-2">
+          <div className="text-lg">
+            Shorts
+          </div>
+          <StackedAbsValuesChart cols={
+            [
+              { name: 'Dealers', column: 'dealer_positions_short_all', },
+              { name: 'Asset Managers', column: 'asset_mgr_positions_short', },
+              { name: 'Leveraged Funds', column: 'lev_money_positions_short', },
+              { name: 'Other Reportables', column: 'other_rept_positions_short', },
+              { name: 'Non-Reportables', column: 'nonrept_positions_short_all', },
+            ]
+          }
+            data={tffData}
+          />
+        </div>
+
         <div className="my-2">
           <div className="text-lg">Changes in Commitments over N weeks</div>
           <CommitmentChangesChart dataFrame={tffData}
@@ -209,65 +226,65 @@ export default function Tff() {
         <div className="my-2">
           <div className="text-lg">Changes in Commitments over N weeks (normalized)</div>
           <OpenInterestChangesNormalizedChart
-          priceData={priceData}
-          reports={tffData}
-          cols={[
-            {
-              traderCategoryName: 'Dealers',
-              longs: 'dealer_positions_long_all',
-              shorts: 'dealer_positions_short_all',
-            },
-            {
-              traderCategoryName: 'Asset Managers',
-              longs: 'asset_mgr_positions_long',
-              shorts: 'asset_mgr_positions_short',
-            },
-            {
-              traderCategoryName: 'Leveraged Funds',
-              longs: 'lev_money_positions_long',
-              shorts: 'lev_money_positions_short',
-            },
-            {
-              traderCategoryName: 'Other Reportables',
-              longs: 'other_rept_positions_long',
-              shorts: 'other_rept_positions_short',
-            },
-            {
-              traderCategoryName: 'Non-Reportables',
-              longs: 'nonrept_positions_long_all',
-              shorts: 'nonrept_positions_short_all',
-            },
-          ]}
+            priceData={priceData}
+            reports={tffData}
+            cols={[
+              {
+                traderCategoryName: 'Dealers',
+                longs: 'dealer_positions_long_all',
+                shorts: 'dealer_positions_short_all',
+              },
+              {
+                traderCategoryName: 'Asset Managers',
+                longs: 'asset_mgr_positions_long',
+                shorts: 'asset_mgr_positions_short',
+              },
+              {
+                traderCategoryName: 'Leveraged Funds',
+                longs: 'lev_money_positions_long',
+                shorts: 'lev_money_positions_short',
+              },
+              {
+                traderCategoryName: 'Other Reportables',
+                longs: 'other_rept_positions_long',
+                shorts: 'other_rept_positions_short',
+              },
+              {
+                traderCategoryName: 'Non-Reportables',
+                longs: 'nonrept_positions_long_all',
+                shorts: 'nonrept_positions_short_all',
+              },
+            ]}
           />
         </div>
         <div className="my-2">
           <div className="text-lg">Number of Traders</div>
           <NumberOfTradersChart
-          reports={tffData}
-          cols={
-            [
-              {
-                name: 'Dealers',
-                n_traders_long: 'traders_dealer_long_all',
-                n_traders_short: 'traders_dealer_short_all',
-              },
-              {
-                name: 'Asset Managers',
-                n_traders_long: 'traders_asset_mgr_long_all',
-                n_traders_short: 'traders_asset_mgr_short_all',
-              },
-              {
-                name: 'Leveraged Funds',
-                n_traders_long: 'traders_lev_money_long_all',
-                n_traders_short: 'traders_lev_money_short_all',              
-              },
-              {
-                name: 'Other Reportables',
-                n_traders_long: 'traders_other_rept_long_all',
-                n_traders_short: 'traders_other_rept_short',
-              },
-            ]
-          }
+            reports={tffData}
+            cols={
+              [
+                {
+                  name: 'Dealers',
+                  n_traders_long: 'traders_dealer_long_all',
+                  n_traders_short: 'traders_dealer_short_all',
+                },
+                {
+                  name: 'Asset Managers',
+                  n_traders_long: 'traders_asset_mgr_long_all',
+                  n_traders_short: 'traders_asset_mgr_short_all',
+                },
+                {
+                  name: 'Leveraged Funds',
+                  n_traders_long: 'traders_lev_money_long_all',
+                  n_traders_short: 'traders_lev_money_short_all',
+                },
+                {
+                  name: 'Other Reportables',
+                  n_traders_long: 'traders_other_rept_long_all',
+                  n_traders_short: 'traders_other_rept_short',
+                },
+              ]
+            }
           />
         </div>
         <div className="my-2">
