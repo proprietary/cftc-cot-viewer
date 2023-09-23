@@ -93,9 +93,9 @@ const tooltipFormatters: Record<NormalizationMethod, (value: string | number) =>
 
 const yAxisLabels: Record<NormalizationMethod, (label: string) => string> = {
     [NormalizationMethod.StandardZscore]: (label) => `${label} - σ (standard deviations)`,
-    [NormalizationMethod.QuantileTransformer]: (label) => `${label} - %ile`,
-    [NormalizationMethod.RobustScaler]: label => label,
-    [NormalizationMethod.MinMaxScaler]: label => label,
+    [NormalizationMethod.QuantileTransformer]: (label) => `${label} - %iles`,
+    [NormalizationMethod.RobustScaler]: label => `${label} - normalized`,
+    [NormalizationMethod.MinMaxScaler]: label => `${label} - %iles`,
     [NormalizationMethod.None]: label => label,
 }
 
@@ -104,7 +104,7 @@ export default function StandardizedCotOscillator(
         xAxisDates,
         plottedColumns,
         title = '',
-        yAxisLabel = 'Net Positioning',
+        yAxisLabel = '',
         loading = false,
         priceData,
     }: {

@@ -20,6 +20,7 @@ import { PriceBar } from '@/common_types';
 import StackedAbsValuesChart from '@/stacked_abs_values_chart';
 import CommitmentChangesChart from '@/commitment_changes_chart';
 import NumberOfTradersChart from '@/number_of_traders_chart';
+import OpenInterestChangesNormalizedChart from '../open_interest_changes_normalized_chart';
 
 echarts.use([TitleComponent, LineChart, VisualMapComponent, TimelineComponent, TooltipComponent, ToolboxComponent, DataZoomComponent, LegendComponent, GridComponent, BarChart, SVGRenderer, CanvasRenderer]);
 
@@ -136,12 +137,13 @@ export default function Tff() {
             <abbr title="Net of Longs minus Shorts held by traders in the given category (Long - Short = Net)">Longs - Shorts</abbr>
           </div>
           <StandardizedCotOscillator
+            yAxisLabel='Net Exposure as a Percent of Open Interest'
             plottedColumns={[
-              { name: 'Dealers', data: tffData.map(x => x.dealer_positions_long_all - x.dealer_positions_short_all) },
-              { name: 'Asset Managers', data: tffData.map(x => x.asset_mgr_positions_long - x.asset_mgr_positions_short) },
-              { name: 'Leveraged Funds', data: tffData.map(x => x.lev_money_positions_long - x.lev_money_positions_short) },
-              { name: 'Other Reportables', data: tffData.map(x => x.other_rept_positions_long - x.other_rept_positions_short) },
-              { name: 'Non-Reportables', data: tffData.map(x => x.nonrept_positions_long_all - x.nonrept_positions_short_all) },
+              { name: 'Dealers', data: tffData.map(x => (x.dealer_positions_long_all - x.dealer_positions_short_all)/x.open_interest_all) },
+              { name: 'Asset Managers', data: tffData.map(x => (x.asset_mgr_positions_long - x.asset_mgr_positions_short)/x.open_interest_all) },
+              { name: 'Leveraged Funds', data: tffData.map(x => (x.lev_money_positions_long - x.lev_money_positions_short)/x.open_interest_all) },
+              { name: 'Other Reportables', data: tffData.map(x => (x.other_rept_positions_long - x.other_rept_positions_short)/x.open_interest_all) },
+              { name: 'Non-Reportables', data: tffData.map(x => (x.nonrept_positions_long_all - x.nonrept_positions_short_all)/x.open_interest_all) },
             ]}
             xAxisDates={tffData.map(x => formatDateYYYYMMDD(new Date(x.timestamp)))}
             title={tffData.at(0)?.contract_market_name}
@@ -202,6 +204,40 @@ export default function Tff() {
                 },
               ]
             }
+          />
+        </div>
+        <div className="my-2">
+          <div className="text-lg">Changes in Commitments over N weeks (normalized)</div>
+          <OpenInterestChangesNormalizedChart
+          priceData={priceData}
+          reports={tffData}
+          cols={[
+            {
+              traderCategoryName: 'Dealers',
+              longs: 'dealer_positions_long_all',
+              shorts: 'dealer_positions_short_all',
+            },
+            {
+              traderCategoryName: 'Asset Managers',
+              longs: 'asset_mgr_positions_long',
+              shorts: 'asset_mgr_positions_short',
+            },
+            {
+              traderCategoryName: 'Leveraged Funds',
+              longs: 'lev_money_positions_long',
+              shorts: 'lev_money_positions_short',
+            },
+            {
+              traderCategoryName: 'Other Reportables',
+              longs: 'other_rept_positions_long',
+              shorts: 'other_rept_positions_short',
+            },
+            {
+              traderCategoryName: 'Non-Reportables',
+              longs: 'nonrept_positions_long_all',
+              shorts: 'nonrept_positions_short_all',
+            },
+          ]}
           />
         </div>
         <div className="my-2">
