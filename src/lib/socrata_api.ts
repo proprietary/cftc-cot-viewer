@@ -1,42 +1,8 @@
-import { IAnyCOTReportType } from "./socrata_cot_report";
-import { DateRangeRequest, ContractListRequest } from "./cftc_api";
-import { CFTCContractMarketCode, CFTCReportType, CFTCCommodityGroupType } from "./common_types";
+import { IAnyCOTReportType } from "../socrata_cot_report";
+import { DateRangeRequest, ContractListRequest } from "../cftc_api";
+import { CFTCContractMarketCode, CFTCReportType, CFTCCommodityGroupType } from "../common_types";
+import { CommodityContractKind } from "./CommodityContractKind";
 
-
-export interface CommodityContractKind {
-    // This must be distinct.
-    cftcContractMarketCode: CFTCContractMarketCode;
-
-    reportType: CFTCReportType;
-
-    group?: CFTCCommodityGroupType;
-
-    // location of where it's traded, e.g., NYC
-    cftcRegionCode?: string;
-
-    // name of the exchange
-    cftcMarketCode?: string;
-
-    // Distinct code for a specific commodity. For example, crude oil is always "067", and contracts with WTI or Brent both have "067".
-    cftcCommodityCode?: string;
-
-    // e.g., NATURAL GAS AND PRODUCTS
-    commoditySubgroupName?: string;
-
-    cftcSubgroupCode?: string;
-
-    // e.g., BUTANE OPIS MT BELV NONTET FP  - ICE FUTURES ENERGY DIV
-    marketAndExchangeNames?: string;
-
-    // name of the contract itself, e.g., E-mini S&P 500
-    contractMarketName?: string;
-
-    // e.g., NATURAL GAS LIQUIDS
-    commodityName?: string;
-
-    // corresponds to column `commodity` in the API result--no idea if it's different from `commodityName`
-    commodity?: string;
-}
 
 export class SocrataApi {
     private appToken_: string = '';
@@ -107,14 +73,13 @@ export class SocrataApi {
             tee /tmp/cftc.json | \
             jq length
         */
-        const selectColumns = [
+        let selectColumns = [
             'cftc_contract_market_code',
             'market_and_exchange_names',
             'contract_market_name',
             'commodity_name',
             'cftc_market_code',
             'cftc_region_code',
-            'cftc_subgroup_code',
             'commodity',
             'commodity_subgroup_name',
             'commodity_group_name',
@@ -130,10 +95,12 @@ export class SocrataApi {
             // Disaggregated
             case CFTCReportType.Disaggregated:
                 baseUrl = "https://publicreporting.cftc.gov/resource/72hh-3qpy.json";
+                selectColumns.push('cftc_subgroup_code');
                 break;
             // Traders in Financial Futures
             case CFTCReportType.FinancialFutures:
                 baseUrl = "https://publicreporting.cftc.gov/resource/gpe5-46if.json";
+                selectColumns.push('cftc_subgroup_code');
                 break;
             // Legacy COT
             case CFTCReportType.Legacy:
@@ -156,6 +123,11 @@ export class SocrataApi {
         const resp = await fetch(baseUrl + '?' + params, {
             method: 'GET',
         });
+        if (resp.status !== 200) {
+            console.error(`${resp.status} ${resp.statusText}`);
+            console.error(await resp.text());
+            return [];
+        }
         const apiResult = await resp.json();
         return apiResult.map((row: any): CommodityContractKind => {
             let dst = {
@@ -168,7 +140,7 @@ export class SocrataApi {
                 contractMarketName: row['contract_market_name'],
                 commodity: row['commodity'],
                 cftcCommodityCode: row['cftc_commodity_code'],
-                cftcSubgroupCode: row['cftc_subgroup_code'],
+                cftcSubgroupCode: request.reportType !== CFTCReportType.Legacy ? row['cftc_subgroup_code'] : null,
                 commoditySubgroupName: row['commodity_subgroup_name'],
                 group: row['commodity_group_name'] as CFTCCommodityGroupType,
             };
@@ -197,4 +169,84 @@ export class SocrataApi {
     private static formatFloatingTimestamp(d: Date): string {
         return d.toISOString().replace('Z', '');
     }
+}
+
+export type IContractsTypesTree = {
+    [commodityGroupName in CFTCCommodityGroupType]: {
+        [subgroupName: string]: {
+            [commodityName: string]: CommodityContractKind[];
+        };
+    };
+};
+
+export function makeContractsTree(src: CommodityContractKind[], identifierTransform: (identifier: string) => string = x => x): IContractsTypesTree {
+    let dst: IContractsTypesTree = {
+        [CFTCCommodityGroupType.Agriculture]: {},
+        [CFTCCommodityGroupType.Financial]: {},
+        [CFTCCommodityGroupType.NaturalResources]: {},
+    };
+    for (const contract of src) {
+        if (contract.group == null) continue;
+        if (contract.commoditySubgroupName == null) continue;
+        if (contract.commodityName == null) continue;
+        if (!(contract.group in dst)) {
+            dst[contract.group] = {};
+        }
+        const commoditySubgroupName = identifierTransform(contract.commoditySubgroupName);
+        const commodityName = identifierTransform(contract.commodityName);
+        if (!(commoditySubgroupName in dst[contract.group!])) {
+            dst[contract.group!][commoditySubgroupName] = {};
+        }
+        if (!(commodityName in dst[contract.group!][commoditySubgroupName])) {
+            dst[contract.group!][commoditySubgroupName][commodityName] = [];
+        }
+        dst[contract.group!][commoditySubgroupName][commodityName].push(contract);
+    }
+    return dst;
+}
+
+export type AllAvailableContractTypesTree = {
+    [commodityGroupName: string]: {
+        [subgroupName: string]: {
+            [commodityName: string]: {
+                [reportType in CFTCReportType]: CommodityContractKind[];
+            };
+        };
+    };
+};
+
+export async function fetchAllAvailableContracts(identifierTransform: (identifier: string) => string = x => x): Promise<AllAvailableContractTypesTree> {
+    let dst: AllAvailableContractTypesTree = {
+        [identifierTransform(CFTCCommodityGroupType.Agriculture)]: {},
+        [identifierTransform(CFTCCommodityGroupType.Financial)]: {},
+        [identifierTransform(CFTCCommodityGroupType.NaturalResources)]: {},
+    };
+    const api = new SocrataApi();
+    for (const reportType of [CFTCReportType.FinancialFutures, CFTCReportType.Disaggregated, CFTCReportType.Legacy]) {
+        const contracts = await api.fetchAvailableContracts({
+            reportType,
+        });
+        for (const contract of contracts) {
+            if (contract.group == null || contract.commoditySubgroupName == null || contract.commodityName == null) continue;
+            const commodityGroupName = identifierTransform(contract.group);
+            const commoditySubgroupName = identifierTransform(contract.commoditySubgroupName);
+            const commodityName = identifierTransform(contract.commodityName);
+            if (!(commodityGroupName in dst)) {
+                console.error(`Unexpected commodity group: "${contract.group!}"`);
+                dst[commodityGroupName] = {};
+            }
+            if (!(commoditySubgroupName in dst[commodityGroupName])) {
+                dst[commodityGroupName][commoditySubgroupName] = {};
+            }
+            if (!(commodityName in dst[commodityGroupName][commoditySubgroupName])) {
+                dst[commodityGroupName][commoditySubgroupName][commodityName] = {
+                    [CFTCReportType.FinancialFutures]: [],
+                    [CFTCReportType.Disaggregated]: [],
+                    [CFTCReportType.Legacy]: [],
+                };
+            }
+            dst[commodityGroupName][commoditySubgroupName][commodityName][reportType].push(contract);    
+        }
+    }
+    return dst;
 }

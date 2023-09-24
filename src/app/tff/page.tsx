@@ -11,7 +11,7 @@ import { useRouter } from 'next/navigation';
 import { useSearchParams, usePathname } from 'next/navigation';
 import { CachingCFTCApi, ContractListRequest } from '@/cftc_api';
 import { CFTCReportType } from "@/common_types";
-import { CommodityContractKind } from "@/socrata_api";
+import { CommodityContractKind } from "@/lib/CommodityContractKind";
 import { IFinancialFuturesCOTReport } from '@/socrata_cot_report';
 import { rollingZscore } from '@/chart_math';
 import { SCREEN_LARGE, SCREEN_MEDIUM, SCREEN_SMALL, useViewportDimensions, usePrevious, formatDateYYYYMMDD } from '@/util';

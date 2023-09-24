@@ -22,7 +22,7 @@ export enum CFTCReportType {
 export enum CFTCCommodityGroupType {
     Financial = "FINANCIAL INSTRUMENTS",
     NaturalResources = "NATURAL RESOURCES",
-    Agriculture = "AGRICULTURE"
+    Agriculture = "AGRICULTURE",
 }
 
 export type CFTCContractMarketCode = string;

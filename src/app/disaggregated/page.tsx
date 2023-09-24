@@ -6,7 +6,7 @@ import { useSearchParams, usePathname } from 'next/navigation';
 
 import { CachingCFTCApi, ContractListRequest } from '@/cftc_api';
 import { CFTCReportType } from "@/common_types";
-import { CommodityContractKind } from "@/socrata_api";
+import { CommodityContractKind } from "@/lib/CommodityContractKind";
 import StandardizedCotOscillator from '../standardized_cot_oscillator';
 
 export default function Disaggregated() {

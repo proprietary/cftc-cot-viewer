@@ -1,6 +1,7 @@
 import { daysDiff, iso8601StringWithNoTimezoneOffset, plusDays } from "./util";
 import { ISocrataCOTReport, IFinancialFuturesCOTReport, IDisaggregatedFuturesCOTReport, ILegacyFuturesCOTReport, IAnyCOTReportType } from "./socrata_cot_report";
-import { SocrataApi, CommodityContractKind } from "./socrata_api";
+import { SocrataApi } from "./lib/socrata_api";
+import { CommodityContractKind } from "./lib/CommodityContractKind";
 import { CFTCReportType } from "./common_types";
 
 export class CachingCFTCApi {
