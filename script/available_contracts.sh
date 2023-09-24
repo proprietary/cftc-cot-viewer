@@ -21,6 +21,20 @@ EOF
     python3 -c "$python3_code"
 }
 
+function fetch_oldest_dates {
+    local url="$1"
+    if [ -z "$url" ]; then
+        return 1
+    fi
+    
+    curl -X GET "$url" -G \
+    --data-urlencode "\$select=cftc_contract_market_code,min(report_date_as_yyyy_mm_dd) as oldest_report_date" \
+    --data-urlencode "\$group=cftc_contract_market_code" \
+    --data-urlencode "\$limit=10000" \
+    --compressed \
+    -o -
+}
+
 function fetch_available_contracts {
     local url="$1"
     local output_filename="$2"
@@ -45,11 +59,20 @@ function fetch_available_contracts {
         return $?
     fi
 
-    # Format JSON
+    # Process JSON
     if command -v jq >/dev/null 2>&1; then
         temp_file=$(mktemp)
         jq . "$output_filename" > "$temp_file"
         mv "$temp_file" "$output_filename"
+
+        # Fetch oldest dates separately and merge them in with `jq` magic
+        oldest_dates_json=$(fetch_oldest_dates "$url")
+        output_with_oldest_dates=$(mktemp)
+        cftc_code_map_to_date=$(jq -r 'map({(.cftc_contract_market_code): .oldest_report_date}) | add' <<< "$oldest_dates_json")
+        jq --argjson cftc_code_map_to_date "$cftc_code_map_to_date" \
+            '.[] | .oldest_report_date = $cftc_code_map_to_date[.cftc_contract_market_code] // .oldest_report_date' \
+            "$output_filename" > "$output_with_oldest_dates"
+        mv "$output_with_oldest_dates" "$output_filename"
     fi
 }
 
