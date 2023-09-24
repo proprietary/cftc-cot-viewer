@@ -7,11 +7,19 @@ import Link from "next/link";
 export default function CommodityTree({
     commodityNameTitle,
     commodityTree,
+    depth,
+    commodityNameSlug,
+    commodityGroupNameSlug,
+    commoditySubgroupNameSlug,
 }: {
     commodityNameTitle: string,
     commodityTree: {
         [reportType in CFTCReportType]: CommodityContractKind[]
     },
+    depth: number,
+    commodityNameSlug: string,
+    commodityGroupNameSlug: string,
+    commoditySubgroupNameSlug: string,
 }) {
     const renderContractsLinks = (contracts: CommodityContractKind[]) =>
         contracts.map((contract, contractIdx) => (
@@ -29,7 +37,11 @@ export default function CommodityTree({
         <div className="block m-2">
             <pre>{/*JSON.stringify(commodityTree, null, 4)*/}</pre>
             <div className="my-3">
-                <h3 className="text-lg font-bold block">{commodityNameTitle}</h3>
+                <h3 className="text-lg font-bold block">
+                    <Link href={`/futures/${commodityGroupNameSlug}/${commoditySubgroupNameSlug}/${commodityNameSlug}`}>
+                        {commodityNameTitle}
+                    </Link>
+                </h3>
                 {commodityTree[CFTCReportType.FinancialFutures].length > 0 && (
                     <div>
                         <h4>Traders in Financial Futures</h4>
@@ -52,19 +64,4 @@ export default function CommodityTree({
             </div>
         </div>
     )
-}
-
-
-export async function generateStaticParams() {
-    const contracts = await (new SocrataApi()).fetchAvailableContracts({
-        reportType: CFTCReportType.FinancialFutures
-    });
-    const contractsTree = makeContractsTree(contracts, allCapsToSlug);
-    let dst: { subgroupName: string }[] = [];
-    for (const [subgroupName, v] of Object.entries(contractsTree[CFTCCommodityGroupType.Financial])) {
-        dst.push({
-            subgroupName,
-        });
-    }
-    return dst;
 }
