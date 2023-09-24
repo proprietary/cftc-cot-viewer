@@ -3,6 +3,8 @@ import { CFTCCommodityGroupType, CFTCReportType } from "@/common_types";
 import { allCapsToTitle, allCapsToSlug, slugToTitle } from "@/lib/cftc_api_utils";
 import Link from "next/link";
 import CommodityTree from "@/app/futures/commodity_tree";
+import { FetchAllAvailableContracts } from "@/lib/fetchAvailableContracts";
+import { CommodityContractKind } from "@/lib/CommodityContractKind";
 
 export default async function Page({
     params
@@ -12,8 +14,27 @@ export default async function Page({
     const commodityGroupNameSlug = decodeURIComponent(params.commodityGroupName);
     const commoditySubgroupNameSlug = decodeURIComponent(params.subgroupName);
     const commodityNameSlug = decodeURIComponent(params.commodityName);
-    const contractsTree = await fetchAllAvailableContracts(allCapsToSlug);
-    const commodityTree = contractsTree[commodityGroupNameSlug][commoditySubgroupNameSlug][commodityNameSlug];
+    const contractsTree = await FetchAllAvailableContracts();
+    const markets = contractsTree.getCommodityContracts(
+        commodityGroupNameSlug,
+        commoditySubgroupNameSlug,
+        commodityNameSlug,
+    );
+    const renderContractsLinks = (contracts: CommodityContractKind[]) => (
+        <ul className="block">
+            {contracts.map((contract, contractIdx) => (
+                <li key={contractIdx} className="ml-5 py-2">
+                    <Link
+                        className="cursor-pointer hover:text-white text-indigo-500"
+                        href={`/futures/${allCapsToSlug(contract.group!)}/${allCapsToSlug(contract.commoditySubgroupName!)}/${allCapsToSlug(contract.commodityName!)}/${contract.cftcContractMarketCode}`}
+                    >
+                        {contract.marketAndExchangeNames}
+                    </Link>
+                </li>
+            ))}
+        </ul>
+    )
+
     return (
         <div className="flex min-h-screen flex-col p-10">
             <pre>{JSON.stringify(params, null, 4)}</pre>
@@ -51,14 +72,37 @@ export default async function Page({
                 </ol>
             </nav>
 
-            <CommodityTree
-                commodityNameTitle={slugToTitle(commodityNameSlug)}
-                commodityTree={commodityTree}
-                depth={5}
-                commodityGroupNameSlug={commodityGroupNameSlug}
-                commodityNameSlug={commodityNameSlug}
-                commoditySubgroupNameSlug={commoditySubgroupNameSlug}
-            />
+            <h3 className="text-2xl antialiased font-bold my-10">
+                {slugToTitle(commodityNameSlug)}
+            </h3>
+
+            <div>
+                {markets.map(({ marketAndExchangeName, contractsSet }, jdx) => (
+                    <div key={jdx}>
+                        <div className="my-2 text-lg">
+                            {marketAndExchangeName}
+                        </div>
+                        {contractsSet[CFTCReportType.FinancialFutures].map((contract, idx) => (
+                            <Link
+                                key={idx}
+                                href={`/reports/${commodityGroupNameSlug}/${commoditySubgroupNameSlug}/${commodityNameSlug}/${contract.cftcContractMarketCode}/traders-in-financial-futures`}
+                            >Traders in Financial Futures</Link>
+                        ))}
+                        {contractsSet[CFTCReportType.Disaggregated].map((contract, idx) => (
+                            <Link
+                                key={idx}
+                                href={`/reports/${commodityGroupNameSlug}/${commoditySubgroupNameSlug}/${commodityNameSlug}/${contract.cftcContractMarketCode}/disaggregated`}
+                            >Disaggregated</Link>
+                        ))}
+                        {contractsSet[CFTCReportType.Legacy].map((contract, idx) => (
+                            <Link
+                                key={idx}
+                                href={`/reports/${commodityGroupNameSlug}/${commoditySubgroupNameSlug}/${commodityNameSlug}/${contract.cftcContractMarketCode}/legacy`}
+                            >Legacy</Link>
+                        ))}
+                    </div>
+                ))}
+            </div>
         </div>
     )
 }
@@ -69,15 +113,11 @@ export async function generateStaticParams({
 }: {
     params: { commodityGroupName: string, subgroupName: string },
 }) {
-    let dst: { commodityName: string }[] = [];
-    if (params.commodityGroupName == null || params.subgroupName == null) return dst;
+    if (params.commodityGroupName == null || params.subgroupName == null) return [];
     const commodityGroupName = decodeURIComponent(params.commodityGroupName);
     const subgroupName = decodeURIComponent(params.subgroupName);
-    const contractsTree = await fetchAllAvailableContracts(allCapsToSlug);
-    for (const [commodityName, _] of Object.entries(contractsTree[commodityGroupName][subgroupName])) {
-        dst.push({
-            commodityName,
-        });
-    }
-    return dst;
+    const contractsTree = await FetchAllAvailableContracts();
+    return contractsTree.getCommodityNames(commodityGroupName, subgroupName).map((commodityName) => ({
+        commodityName,
+    }));
 }

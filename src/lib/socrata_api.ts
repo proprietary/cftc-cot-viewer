@@ -2,6 +2,7 @@ import { IAnyCOTReportType } from "../socrata_cot_report";
 import { DateRangeRequest, ContractListRequest } from "../cftc_api";
 import { CFTCContractMarketCode, CFTCReportType, CFTCCommodityGroupType } from "../common_types";
 import { CommodityContractKind } from "./CommodityContractKind";
+import { ContractsTree } from "./contracts_tree";
 
 
 export class SocrataApi {
@@ -37,7 +38,7 @@ export class SocrataApi {
         let got = 0;
         do {
             let params = new URLSearchParams({
-                '$where': `cftc_contract_market_code='${request.contract.cftcContractMarketCode}' and report_date_as_yyyy_mm_dd between '${startDateStr}' and '${endDateStr}'`,
+                '$where': `cftc_contract_market_code='${request.cftcContractMarketCode}' and report_date_as_yyyy_mm_dd between '${startDateStr}' and '${endDateStr}'`,
                 '$limit': limit.toString(),
                 '$offset': offset.toString(),
             });
@@ -51,6 +52,7 @@ export class SocrataApi {
             if (resp.status !== 200) {
                 throw new Error(await resp.text());
             }
+            // TODO(zds): handle error from Socrata
             let j: IAnyCOTReportType[] = await resp.json();
             got = j.length;
             offset += got;
@@ -110,8 +112,14 @@ export class SocrataApi {
                 throw new Error('unreachable!');
         }
         let params = new URLSearchParams({
-            '$select': [...selectColumns, 'trim(cftc_commodity_code) AS cftc_commodity_code'].join(','),
-            '$group': [...selectColumns, 'cftc_commodity_code'].join(','),
+            '$select': [
+                ...selectColumns,
+                'trim(cftc_commodity_code) AS cftc_commodity_code',
+                'min(report_date_as_yyyy_mm_dd) as oldest_report_date',
+            ].join(','),
+            '$group': [
+                ...selectColumns, 'cftc_commodity_code',
+           ].join(','),
             '$where': `futonly_or_combined='FutOnly'`,
             // exclude defunct contracts
             '$having': `max(report_date_as_yyyy_mm_dd) > '${SocrataApi.formatFloatingTimestamp(minContractDate)}'`,
@@ -129,9 +137,14 @@ export class SocrataApi {
             return [];
         }
         const apiResult = await resp.json();
-        return apiResult.map((row: any): CommodityContractKind => {
-            let dst = {
-                reportType: request.reportType,
+        // TODO(zds): check for errors
+        return SocrataApi.parseAvailableContractsJSON(apiResult, request.reportType);
+    }
+
+    public static parseAvailableContractsJSON(rows: Array<Object>, reportType: CFTCReportType): CommodityContractKind[] {
+        return rows.map((row: any): CommodityContractKind => {
+            let dst: CommodityContractKind = {
+                reportType,
                 cftcContractMarketCode: row['cftc_contract_market_code'] as CFTCContractMarketCode,
                 marketAndExchangeNames: row['market_and_exchange_names'],
                 commodityName: row['commodity_name'],
@@ -139,10 +152,11 @@ export class SocrataApi {
                 cftcRegionCode: row['cftc_region_code'],
                 contractMarketName: row['contract_market_name'],
                 commodity: row['commodity'],
-                cftcCommodityCode: row['cftc_commodity_code'],
-                cftcSubgroupCode: request.reportType !== CFTCReportType.Legacy ? row['cftc_subgroup_code'] : null,
+                cftcCommodityCode: row['cftc_commodity_code'].trim(),
+                cftcSubgroupCode: row['cftc_subgroup_code'],
                 commoditySubgroupName: row['commodity_subgroup_name'],
                 group: row['commodity_group_name'] as CFTCCommodityGroupType,
+                oldestReportDate: row['oldest_report_date'],
             };
             return dst;
         });
@@ -245,8 +259,9 @@ export async function fetchAllAvailableContracts(identifierTransform: (identifie
                     [CFTCReportType.Legacy]: [],
                 };
             }
-            dst[commodityGroupName][commoditySubgroupName][commodityName][reportType].push(contract);    
+            dst[commodityGroupName][commoditySubgroupName][commodityName][reportType].push(contract);
         }
     }
     return dst;
 }
+

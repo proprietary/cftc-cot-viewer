@@ -22,7 +22,7 @@ export default function RootLayout({
         <div className="antialiased bg-gradient-to-br from-gray-950 via-slate-750 to-indigo-950">
           <Navbar />
           {children}
-          <Footer/>
+          <Footer />
         </div>
       </body>
     </html>

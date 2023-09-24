@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useCallback } from 'react';
-import cloneDeep from 'lodash-es/cloneDeep';
 import ReactEChartsCore from 'echarts-for-react/lib/core';
 import * as echarts from 'echarts/core';
 import { TitleComponent, GridComponent, LegendComponent, TooltipComponent, ToolboxComponent, DataZoomComponent, VisualMapComponent, TimelineComponent } from 'echarts/components';
@@ -82,10 +81,7 @@ export default function Tff() {
           reportType: CFTCReportType.FinancialFutures,
           startDate: new Date(2000, 0, 1),
           endDate: new Date(),
-          contract: {
-            reportType: CFTCReportType.FinancialFutures,
-            cftcContractMarketCode: commoditySelected,
-          },
+          cftcContractMarketCode: commoditySelected,
         }) as IFinancialFuturesCOTReport[];
         setTffData(tffData);
         // get price data, if any is available

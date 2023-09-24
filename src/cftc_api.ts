@@ -241,7 +241,7 @@ export class CachingCFTCApi {
             req.onsuccess = (ev) => {
                 const cursor = (ev.target as IDBRequest<IDBCursorWithValue>).result;
                 if (cursor != null) {
-                    if (cursor.value['cftc_contract_market_code'] === request.contract.cftcContractMarketCode &&
+                    if (cursor.value['cftc_contract_market_code'] === request.cftcContractMarketCode &&
                         cursor.value['timestamp'] >= request.startDate.getTime() &&
                         cursor.value['timestamp'] <= request.endDate.getTime()) {
                         resultSet.push(cursor.value);
@@ -361,7 +361,7 @@ export class CachingCFTCApi {
 
 export interface DateRangeRequest {
     reportType: CFTCReportType,
-    contract: CommodityContractKind,
+    cftcContractMarketCode: string,
     startDate: Date,
     endDate: Date,
 }

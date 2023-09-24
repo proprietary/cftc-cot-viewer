@@ -3,16 +3,18 @@ import { CFTCCommodityGroupType, CFTCReportType } from "@/common_types";
 import { allCapsToSlug, slugToTitle, slugToAllCaps } from "@/lib/cftc_api_utils";
 import SubgroupTree from "@/app/futures/subgroup_tree";
 import Link from "next/link";
+import { FetchAllAvailableContracts } from "@/lib/fetchAvailableContracts";
 
 export default async function Page({
     params
 }: {
     params: { commodityGroupName: string, subgroupName: string, },
 }) {
-    const contractsTree = await fetchAllAvailableContracts(allCapsToSlug);
+    const contractsTree = await FetchAllAvailableContracts();
     const commodityGroupNameSlug = decodeURIComponent(params.commodityGroupName);
     const subgroupNameSlug = decodeURIComponent(params.subgroupName);
-    const thisSubgroup = contractsTree[commodityGroupNameSlug][subgroupNameSlug];
+    const commodities = contractsTree.getCommodityNames(commodityGroupNameSlug, subgroupNameSlug);
+    console.log('commodities:', JSON.stringify(commodities, null, 4));
     return (
         <div className="flex min-h-screen flex-col p-10">
             <pre>{JSON.stringify(params, null, 4)}</pre>
@@ -41,13 +43,15 @@ export default async function Page({
                     </li>
                 </ol>
             </nav>
-            <SubgroupTree
-                subgroupTree={thisSubgroup}
-                commoditySubgroupNameTitle={slugToTitle(subgroupNameSlug)}
-                commoditySubgroupNameSlug={subgroupNameSlug}
-                depth={1}
-                commodityGroupNameSlug={commodityGroupNameSlug}
-            />
+            {commodities.map((commodityName, idx) => (
+                <div key={idx}>
+                    <Link
+                        href={`/futures/${commodityGroupNameSlug}/${subgroupNameSlug}/${commodityName}`}
+                    >
+                        {slugToTitle(commodityName)}
+                    </Link>
+                </div>
+            ))}
         </div>
     )
 }
@@ -58,12 +62,8 @@ export async function generateStaticParams({
 }: {
     params: { commodityGroupName: string },
 }) {
-    let dst: { subgroupName: string }[] = [];
-    const contractsTree = await fetchAllAvailableContracts(allCapsToSlug);
-    for (const subgroupName of Object.keys(contractsTree[params.commodityGroupName] ?? {})) {
-        dst.push({
-            subgroupName,
-        });
-    }
-    return dst;
+    const contractsTree = await FetchAllAvailableContracts();
+    return contractsTree.getSubgroupNames(params.commodityGroupName).map((subgroupName) => ({
+        subgroupName,
+    }))
 }

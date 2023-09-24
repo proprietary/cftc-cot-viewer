@@ -2,9 +2,10 @@ import { allCapsToSlug, allCapsToTitle, slugToTitle } from "@/lib/cftc_api_utils
 import { fetchAllAvailableContracts } from "@/lib/socrata_api";
 import GroupTree from "./group_tree";
 import Link from "next/link";
+import { FetchAllAvailableContracts } from "@/lib/fetchAvailableContracts";
 
 export default async function Page() {
-    const contractsTree = await fetchAllAvailableContracts(allCapsToSlug);
+    const contractsTree = await FetchAllAvailableContracts();
     return (
         <div className="my-2">
 
@@ -23,7 +24,7 @@ export default async function Page() {
 
 
             <h1 className="block">Futures</h1>
-            {Object.entries(contractsTree).map(([commodityGroupName, groupTree], idx) => {
+            {contractsTree.getGroupNames().map((commodityGroupName, idx) => {
                 return (
                     <div key={idx} className="block my-5 text-lg">
                         <Link
@@ -32,12 +33,6 @@ export default async function Page() {
                         >
                             {slugToTitle(commodityGroupName)}
                         </Link>
-                        <GroupTree
-                            commodityGroupTree={groupTree}
-                            commodityGroupNameTitle={slugToTitle(commodityGroupName)}
-                            commodityGroupNameSlug={commodityGroupName}
-                            depth={0}
-                        />
                     </div>
                 )
             })}

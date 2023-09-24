@@ -34,7 +34,7 @@ function fetch_available_contracts {
     local threshold_date_timestamp=$(generate_older_timestamp)
 
     curl -X GET "$url" -G  \
-        --data-urlencode "\$select=cftc_contract_market_code,trim(cftc_commodity_code) as cftc_commodity_code,market_and_exchange_names,contract_market_name,commodity_name,cftc_market_code,cftc_region_code,commodity,commodity_subgroup_name,commodity_group_name" \
+        --data-urlencode "\$select=cftc_contract_market_code,trim(cftc_commodity_code) as cftc_commodity_code,market_and_exchange_names,contract_market_name,commodity_name,cftc_market_code,cftc_region_code,commodity,commodity_subgroup_name,commodity_group_name,min(report_date_as_yyyy_mm_dd) as oldest_report_date" \
         --data-urlencode "\$group=cftc_contract_market_code,cftc_commodity_code,market_and_exchange_names,contract_market_name,commodity_name,cftc_market_code,cftc_region_code,commodity,commodity_subgroup_name,commodity_group_name" \
         --data-urlencode "\$having=max(report_date_as_yyyy_mm_dd) > '${threshold_date_timestamp}'" \
         --data-urlencode "\$limit=10000" \
@@ -54,5 +54,5 @@ function fetch_available_contracts {
 }
 
 fetch_available_contracts ${legacy_url} "${file_output_dir}/legacy.json" 
-fetch_available_contracts ${financial_futures_url} "${file_output_dir}/financial_futures.json" 
+fetch_available_contracts ${financial_futures_url} "${file_output_dir}/financial-futures.json" 
 fetch_available_contracts ${disaggregated_url} "${file_output_dir}/disaggregated.json" 

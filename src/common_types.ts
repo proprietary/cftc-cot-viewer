@@ -7,6 +7,8 @@ export type PriceFeedSource = 'FRED' | 'unknown';
 
 export type CFTCCommodityCode = string;
 
+export type CFTCSubgroupName = string;
+
 export interface IPriceFeed {
     source: PriceFeedSource,
     name: string,

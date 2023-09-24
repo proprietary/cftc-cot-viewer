@@ -5,6 +5,7 @@ import { allCapsToTitle, allCapsToSlug, slugToTitle } from "@/lib/cftc_api_utils
 import Link from "next/link";
 import SubgroupTree from "../subgroup_tree";
 import GroupTree from "../group_tree";
+import { FetchAllAvailableContracts } from "@/lib/fetchAvailableContracts";
 
 export default async function Page({
     params
@@ -14,8 +15,8 @@ export default async function Page({
     }
 }) {
     const commodityGroupNameSlug = decodeURIComponent(params.commodityGroupName);
-    const contractsTree = await fetchAllAvailableContracts(allCapsToSlug);
-    const subgroups = contractsTree[commodityGroupNameSlug];
+    const contractsTree = await FetchAllAvailableContracts();
+    const subgroups = contractsTree.getSubgroupNames(commodityGroupNameSlug);
     return (
         <div>
             <nav aria-label="breadcrumbs" className="rounded-lg block my-2 p-4">
@@ -39,20 +40,23 @@ export default async function Page({
             <h2 className="block my-2">{slugToTitle(commodityGroupNameSlug)}</h2>
 
             <pre>{JSON.stringify(params, null, 4)}</pre>
-            <GroupTree
-                commodityGroupNameTitle={slugToTitle(commodityGroupNameSlug)}
-                commodityGroupNameSlug={commodityGroupNameSlug}
-                commodityGroupTree={subgroups}
-                depth={2}
-            />
+            <div>
+                {subgroups.map((subgroupName, idx) => (
+                    <div key={idx}>
+                        <Link href={`/futures/${commodityGroupNameSlug}/${subgroupName}`}>
+                            {slugToTitle(subgroupName)}
+                        </Link>
+                    </div>
+                ))}
+            </div>
         </div>
     );
 }
 
 
 export async function generateStaticParams() {
-    const contractsTree = await fetchAllAvailableContracts(allCapsToSlug);
-    return Object.keys(contractsTree).map((commodityGroupName) => ({
+    const cons = await FetchAllAvailableContracts();
+    return cons.getGroupNames().map(commodityGroupName => ({
         commodityGroupName,
     }));
 }
