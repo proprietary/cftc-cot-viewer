@@ -20,21 +20,6 @@ export default async function Page({
         commoditySubgroupNameSlug,
         commodityNameSlug,
     );
-    const renderContractsLinks = (contracts: CommodityContractKind[]) => (
-        <ul className="block">
-            {contracts.map((contract, contractIdx) => (
-                <li key={contractIdx} className="ml-5 py-2">
-                    <Link
-                        className="cursor-pointer hover:text-white text-indigo-500"
-                        href={`/futures/${allCapsToSlug(contract.group!)}/${allCapsToSlug(contract.commoditySubgroupName!)}/${allCapsToSlug(contract.commodityName!)}/${contract.cftcContractMarketCode}`}
-                    >
-                        {contract.marketAndExchangeNames}
-                    </Link>
-                </li>
-            ))}
-        </ul>
-    )
-
     return (
         <div className="flex min-h-screen flex-col p-10">
             <pre>{JSON.stringify(params, null, 4)}</pre>
@@ -85,19 +70,19 @@ export default async function Page({
                         {contractsSet[CFTCReportType.FinancialFutures].map((contract, idx) => (
                             <Link
                                 key={idx}
-                                href={`/reports/${commodityGroupNameSlug}/${commoditySubgroupNameSlug}/${commodityNameSlug}/${contract.cftcContractMarketCode}/traders-in-financial-futures`}
+                                href={`/futures/${commodityGroupNameSlug}/${commoditySubgroupNameSlug}/${commodityNameSlug}/${contract.cftcContractMarketCode}/traders-in-financial-futures`}
                             >Traders in Financial Futures</Link>
                         ))}
                         {contractsSet[CFTCReportType.Disaggregated].map((contract, idx) => (
                             <Link
                                 key={idx}
-                                href={`/reports/${commodityGroupNameSlug}/${commoditySubgroupNameSlug}/${commodityNameSlug}/${contract.cftcContractMarketCode}/disaggregated`}
+                                href={`/futures/${commodityGroupNameSlug}/${commoditySubgroupNameSlug}/${commodityNameSlug}/${contract.cftcContractMarketCode}/disaggregated`}
                             >Disaggregated</Link>
                         ))}
                         {contractsSet[CFTCReportType.Legacy].map((contract, idx) => (
                             <Link
                                 key={idx}
-                                href={`/reports/${commodityGroupNameSlug}/${commoditySubgroupNameSlug}/${commodityNameSlug}/${contract.cftcContractMarketCode}/legacy`}
+                                href={`/futures/${commodityGroupNameSlug}/${commoditySubgroupNameSlug}/${commodityNameSlug}/${contract.cftcContractMarketCode}/legacy`}
                             >Legacy</Link>
                         ))}
                     </div>

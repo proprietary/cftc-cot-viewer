@@ -14,7 +14,6 @@ export default async function Page({
     const commodityGroupNameSlug = decodeURIComponent(params.commodityGroupName);
     const subgroupNameSlug = decodeURIComponent(params.subgroupName);
     const commodities = contractsTree.getCommodityNames(commodityGroupNameSlug, subgroupNameSlug);
-    console.log('commodities:', JSON.stringify(commodities, null, 4));
     return (
         <div className="flex min-h-screen flex-col p-10">
             <pre>{JSON.stringify(params, null, 4)}</pre>

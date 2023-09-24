@@ -3,6 +3,7 @@ import { DateRangeRequest, ContractListRequest } from "../cftc_api";
 import { CFTCContractMarketCode, CFTCReportType, CFTCCommodityGroupType } from "../common_types";
 import { CommodityContractKind } from "./CommodityContractKind";
 import { ContractsTree } from "./contracts_tree";
+import { parseAvailableContractsJSON } from "./parseAvailableContractsJSON";
 
 
 export class SocrataApi {
@@ -41,6 +42,7 @@ export class SocrataApi {
                 '$where': `cftc_contract_market_code='${request.cftcContractMarketCode}' and report_date_as_yyyy_mm_dd between '${startDateStr}' and '${endDateStr}'`,
                 '$limit': limit.toString(),
                 '$offset': offset.toString(),
+                '$order': 'report_date_as_yyyy_mm_dd asc',
             });
             if (this.appToken_.length > 0) {
                 params.set('$$app_token', this.appToken_);
@@ -59,6 +61,47 @@ export class SocrataApi {
             dst = dst.concat(j);
         } while (got >= limit);
         return SocrataApi.postprocessSocrataApiRecords(dst);
+    }
+
+    public async fetchOldestReportDates(reportType: CFTCReportType): Promise<{[cftcContractMarketCode: string]: string}> {
+        let baseUrl: string;
+        switch (reportType) {
+            // Disaggregated
+            case CFTCReportType.Disaggregated:
+                baseUrl = "https://publicreporting.cftc.gov/resource/72hh-3qpy.json";
+                break;
+            // Traders in Financial Futures
+            case CFTCReportType.FinancialFutures:
+                baseUrl = "https://publicreporting.cftc.gov/resource/gpe5-46if.json";
+                break;
+            // Legacy COT
+            case CFTCReportType.Legacy:
+                baseUrl = "https://publicreporting.cftc.gov/resource/6dca-aqww.json";
+                break;
+            default:
+                throw new Error('unreachable!');
+        }
+        let params = new URLSearchParams({
+            '$select': 'cftc_contract_market_code, min(report_date_as_yyyy_mm_dd) as oldest_report_date',
+            '$group': 'cftc_contract_market_code',
+            '$limit': '10000', // should be enough for just one shot
+        });
+        if (this.appToken_.length > 0) {
+            params.set('$$appToken', this.appToken_);
+        }
+        const resp = await fetch(baseUrl + '?' + params, {method: 'GET'});
+        if (resp.status !== 200) {
+            console.error(`Failure in fetching oldest report dates: ${resp.statusText}`);
+            const body = await resp.json();
+            console.error(body);
+            throw new Error(`Socrata API error: ${body['errorCode']}`);
+        }
+        const apiResult = await resp.json();
+        let out: {[cftcContractMarketCode: string]: string} = apiResult.reduce((acc: {[cftcContractMarketCode: string]: string}, row: any): {[cftcContractMarketCode: string]: string} => {
+            acc[row['cftc_contract_market_code']] = row['oldest_report_date'];
+            return acc;
+        }, {});
+        return out;
     }
 
     public async fetchAvailableContracts(request: ContractListRequest): Promise<CommodityContractKind[]> {
@@ -132,34 +175,20 @@ export class SocrataApi {
             method: 'GET',
         });
         if (resp.status !== 200) {
-            console.error(`${resp.status} ${resp.statusText}`);
-            console.error(await resp.text());
-            return [];
+            console.error(`Socrata API error: ${resp.statusText}`);
+            const body = await resp.json();
+            console.error(body);
+            throw new Error(`Socrata API error: ${body['errorCode']}`);
         }
         const apiResult = await resp.json();
-        // TODO(zds): check for errors
-        return SocrataApi.parseAvailableContractsJSON(apiResult, request.reportType);
-    }
-
-    public static parseAvailableContractsJSON(rows: Array<Object>, reportType: CFTCReportType): CommodityContractKind[] {
-        return rows.map((row: any): CommodityContractKind => {
-            let dst: CommodityContractKind = {
-                reportType,
-                cftcContractMarketCode: row['cftc_contract_market_code'] as CFTCContractMarketCode,
-                marketAndExchangeNames: row['market_and_exchange_names'],
-                commodityName: row['commodity_name'],
-                cftcMarketCode: row['cftc_market_code'],
-                cftcRegionCode: row['cftc_region_code'],
-                contractMarketName: row['contract_market_name'],
-                commodity: row['commodity'],
-                cftcCommodityCode: row['cftc_commodity_code'].trim(),
-                cftcSubgroupCode: row['cftc_subgroup_code'],
-                commoditySubgroupName: row['commodity_subgroup_name'],
-                group: row['commodity_group_name'] as CFTCCommodityGroupType,
-                oldestReportDate: row['oldest_report_date'],
-            };
-            return dst;
-        });
+        let contractsResult = parseAvailableContractsJSON(apiResult, request.reportType);
+        const oldestReportDates = await this.fetchOldestReportDates(request.reportType);
+        for (let i = 0; contractsResult && i < contractsResult.length; ++i) {
+            if (oldestReportDates[contractsResult[i].cftcContractMarketCode] != null) {
+                contractsResult[i].oldestReportDate = oldestReportDates[contractsResult[i].cftcContractMarketCode];
+            }
+        }
+        return contractsResult;
     }
 
     private static postprocessSocrataApiRecords(payload: any[]): IAnyCOTReportType[] {

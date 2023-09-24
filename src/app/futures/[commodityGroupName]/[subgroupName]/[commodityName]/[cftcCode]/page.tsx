@@ -65,17 +65,17 @@ export default async function Page({
                     </div>
                     {contractSet && contractSet[CFTCReportType.FinancialFutures]?.length > 0 && (
                         <Link
-                            href={`/reports/${commodityGroupNameSlug}/${subgroupNameSlug}/${commodityNameSlug}/${cftcCode}/traders-in-financial-futures`}
+                            href={`/futures/${commodityGroupNameSlug}/${subgroupNameSlug}/${commodityNameSlug}/${cftcCode}/traders-in-financial-futures`}
                         >Traders in Financial Futures</Link>
                     )}
                     {contractSet && contractSet[CFTCReportType.Disaggregated]?.length > 0 && (
                         <Link
-                            href={`/reports/${commodityGroupNameSlug}/${commodityNameSlug}/${commodityNameSlug}/${cftcCode}/disaggregated`}
+                            href={`/futures/${commodityGroupNameSlug}/${commodityNameSlug}/${commodityNameSlug}/${cftcCode}/disaggregated`}
                         >Disaggregated</Link>
                     )}
                     {contractSet && contractSet[CFTCReportType.Legacy]?.length > 0 && (
                         <Link
-                            href={`/reports/${commodityGroupNameSlug}/${commodityNameSlug}/${commodityNameSlug}/${cftcCode}/legacy`}
+                            href={`/futures/${commodityGroupNameSlug}/${commodityNameSlug}/${commodityNameSlug}/${cftcCode}/legacy`}
                         >Legacy</Link>
                     )}
                 </div>
