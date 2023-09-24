@@ -70,7 +70,7 @@ function fetch_available_contracts {
         output_with_oldest_dates=$(mktemp)
         cftc_code_map_to_date=$(jq -r 'map({(.cftc_contract_market_code): .oldest_report_date}) | add' <<< "$oldest_dates_json")
         jq --argjson cftc_code_map_to_date "$cftc_code_map_to_date" \
-            '.[] | .oldest_report_date = $cftc_code_map_to_date[.cftc_contract_market_code] // .oldest_report_date' \
+            'map(.oldest_report_date = $cftc_code_map_to_date[.cftc_contract_market_code] // .oldest_report_date)' \
             "$output_filename" > "$output_with_oldest_dates"
         mv "$output_with_oldest_dates" "$output_filename"
     fi
