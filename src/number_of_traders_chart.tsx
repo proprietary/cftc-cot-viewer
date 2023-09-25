@@ -6,7 +6,8 @@ import EChartsReactCore from 'echarts-for-react/lib/core';
 import { BarChart, type BarSeriesOption } from 'echarts/charts';
 import type { TooltipComponentOption, TitleComponentOption, LegendComponentOption, GridComponentOption, ToolboxComponentOption, DataZoomComponentOption } from 'echarts/components';
 import { TitleComponent, LegendComponent, TooltipComponent, DataZoomComponent } from 'echarts/components';
-import { SCREEN_LARGE, SCREEN_SMALL, formatDateYYYYMMDD, useViewportDimensions } from './util';
+import { SCREEN_LARGE, SCREEN_SMALL, formatDateYYYYMMDD } from './util';
+import { useViewportDimensions } from './large_chart_dims_hook';
 import { IAnyCOTReportType, IDisaggregatedFuturesCOTReport, IFinancialFuturesCOTReport, ILegacyFuturesCOTReport } from './socrata_cot_report';
 import useLargeChartDimensions from './large_chart_dims_hook';
 

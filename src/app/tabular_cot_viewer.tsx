@@ -52,7 +52,7 @@ export default function TabularCOTViewer<T extends IFinancialFuturesCOTReport | 
     }, [reports, currentReportsIdx]);
     const report = reports.at(currentReportsIdx);
     return (
-        <div>
+        <div className="overflow-x-auto mx-auto">
             <div>
                 <label>
                     Report Date
@@ -78,27 +78,33 @@ export default function TabularCOTViewer<T extends IFinancialFuturesCOTReport | 
 
                             </th>
                             <th>
-                                Net Position (longs - shorts)
+                                <abbr title="Longs minus Shorts">Net Position</abbr>
                             </th>
                             <th>
-                                1wk ago
+                                <abbr title="Net position 1 week ago">1wk ago</abbr>
                             </th>
                             <th>
-                                4wk ago
+                                <abbr title="Net position 4 weeks ago">4wk ago</abbr>
                             </th>
                             <th>
-                                3M %ile
+                                <abbr title="Percentile of current net positioning with respect to the past 3 months">
+                                    3M %ile
+                                </abbr>
                             </th>
                             <th>
-                                1Y %ile
+                                <abbr title="Pecentile of current net positioning with respect to the last 1 year">
+                                    1Y %ile
+                                </abbr>
                             </th>
                             <th>
-                                1Y z-score
+                                <abbr title="Z-score of the current net positioning with respect to the last 1 year">
+                                    1Y z-score
+                                </abbr>
                             </th>
                         </tr>
                     </thead>
                     <tbody>
-                    {reports.length > 0 && columns.map((column, colIdx) => {
+                        {reports.length > 0 && columns.map((column, colIdx) => {
                             const report = reports.at(currentReportsIdx);
                             if (report == null) return null;
                             return (
@@ -123,7 +129,7 @@ export default function TabularCOTViewer<T extends IFinancialFuturesCOTReport | 
                         })}
                     </tbody>
                 </table>
-                <table>
+                <table className="table-fixed caption-top border-collapse min-w-full">
                     <caption>
                         {reports.at(currentReportsIdx)?.market_and_exchange_names} - week ending {new Date(reports.at(currentReportsIdx)?.timestamp ?? 0).toLocaleDateString()} - Full Report
                     </caption>
@@ -131,10 +137,10 @@ export default function TabularCOTViewer<T extends IFinancialFuturesCOTReport | 
                         <tr>
                             <th>
                             </th>
-                            <th colSpan={3}>
+                            <th colSpan={3} className="border-r border-slate-700">
                                 Longs
                             </th>
-                            <th colSpan={3}>
+                            <th colSpan={3} className="border-r border-slate-700">
                                 Shorts
                             </th>
                             <th colSpan={3}>
@@ -149,30 +155,36 @@ export default function TabularCOTViewer<T extends IFinancialFuturesCOTReport | 
                                 Positions
                             </th>
                             <th>
-                                % of Open Interest
+                                <abbr title="Percentage of total open interest held long by this category of trader">
+                                    % OI
+                                </abbr>
                             </th>
-                            <th>
-                                # Traders
+                            <th className="text-sm mr-5 border-r border-slate-700">
+                                <abbr title="Number of traders long">#</abbr>
                             </th>
 
-                            <th>
+                            <th className="ml-8">
                                 Positions
                             </th>
                             <th>
-                                % of Open Interest
+                                <abbr title="Percentage of total open interest held short by this category of trader">
+                                    % OI
+                                </abbr>
                             </th>
-                            <th>
-                                # Traders
+                            <th className="text-sm mr-5 border-r border-slate-700">
+                                <abbr title="Number of traders short">#</abbr>
                             </th>
 
-                            <th>
+                            <th className="ml-8">
                                 Positions
                             </th>
                             <th>
-                                % of Open Interest
+                                <abbr title="Percentage of total open interest held in spreading positions by this category of trader">
+                                    % OI
+                                </abbr>
                             </th>
                             <th>
-                                # Traders
+                                <abbr title="Number of traders spreading">#</abbr>
                             </th>
                         </tr>
                     </thead>
@@ -190,21 +202,21 @@ export default function TabularCOTViewer<T extends IFinancialFuturesCOTReport | 
                                     <td className="font-mono text-right">
                                         {report[column.longsPctOI] as number}%
                                     </td>
-                                    <td className="font-mono text-right">
+                                    <td className="font-mono text-right border-r border-slate-700">
                                         {column.tradersLong && report[column.tradersLong] as number}
                                     </td>
 
-                                    <td className="font-mono text-right">
+                                    <td className="font-mono text-right ml-8">
                                         {fmtThousandsSeparators(report[column.shorts] as number)}
                                     </td>
                                     <td className="font-mono text-right">
                                         {report[column.shortsPctOI] as number}%
                                     </td>
-                                    <td className="font-mono text-right">
+                                    <td className="font-mono text-right border-r border-slate-700">
                                         {column.tradersShort && report[column.tradersShort] as number}
                                     </td>
 
-                                    <td className="font-mono text-right">
+                                    <td className="font-mono text-right ml-8">
                                         {column.spreading && fmtThousandsSeparators(report[column.spreading] as number)}
                                     </td>
                                     <td className="font-mono text-right">

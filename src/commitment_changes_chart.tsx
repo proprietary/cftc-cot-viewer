@@ -9,7 +9,8 @@ import { BarChart } from 'echarts/charts';
 import type { DatasetComponentOption, TitleComponentOption, LegendComponentOption, DataZoomComponentOption, TooltipComponentOption, ToolboxComponentOption, GraphicComponentOption } from 'echarts/components';
 import { TitleComponent, LegendComponent, DatasetComponent, GridComponent, TooltipComponent, GridComponentOption, ToolboxComponent, DataZoomComponent, GraphicComponent, } from 'echarts/components';
 import { IAnyCOTReportType, IDisaggregatedFuturesCOTReport, IFinancialFuturesCOTReport, ILegacyFuturesCOTReport } from './socrata_cot_report';
-import { SCREEN_LARGE, SCREEN_SMALL, formatDateYYYYMMDD, useViewportDimensions } from './util';
+import { SCREEN_LARGE, SCREEN_SMALL, formatDateYYYYMMDD } from './util';
+import useLargeChartDimensions, { useViewportDimensions } from './large_chart_dims_hook';
 import EChartsReactCore from 'echarts-for-react/lib/core';
 
 echarts.use([BarChart, TitleComponent, GraphicComponent, LegendComponent, DataZoomComponent, DatasetComponent, GridComponent]);
@@ -143,16 +144,7 @@ export default function CommitmentChangesChart({
     }, [cols, dataFrame, nWeeksDelta, posnMethod]);
 
     // compute breakpoints for the ECharts instance; making it responsive
-    const viewportDimensions = useViewportDimensions();
-    let { height: eChartsHeight, width: eChartsWidth } = viewportDimensions;
-    if (viewportDimensions.width >= SCREEN_SMALL) {
-        eChartsWidth = viewportDimensions.width * 0.99;
-        eChartsHeight = viewportDimensions.height * 0.99;
-    }
-    if (viewportDimensions.width >= SCREEN_LARGE) {
-        eChartsWidth = viewportDimensions.width * 0.8;
-        eChartsHeight = viewportDimensions.height * 0.8;
-    }
+    const {eChartsHeight, eChartsWidth} = useLargeChartDimensions();
 
     const handleOptionChange = React.useCallback((ev: React.ChangeEvent<HTMLInputElement>) => {
         setPosnMethod(ev.target.value as PositioningAggregationMethod);

@@ -28,9 +28,9 @@ export default async function Page({
         cftcCode,
     );
     return (
-        <div className="flex min-h-screen flex-col p-10">
+        <div className="bg-inherit">
 
-            <nav aria-label="breadcrumbs" className="rounded-lg block my-2 p-4">
+            <nav aria-label="breadcrumbs" className="py-2">
                 <ol className="list-reset flex text-gray-700">
                     <li className="flex items-center">
                         <Link href={`/`} className="text-blue-500 hover:text-blue-700">
@@ -65,9 +65,7 @@ export default async function Page({
                 </ol>
             </nav>
 
-            <div>
-                {contract && (<Tff contract={contract} />)}
-            </div>
+            {contract && (<Tff contract={contract} />)}
         </div>
     )
 }

@@ -19,7 +19,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={inter.className}>
-        <div className="antialiased bg-gradient-to-br from-gray-950 via-slate-750 to-indigo-950">
+        <div className="antialiased">
           <Navbar />
           {children}
           <Footer />

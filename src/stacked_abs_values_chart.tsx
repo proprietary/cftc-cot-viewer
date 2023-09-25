@@ -7,7 +7,8 @@ import type { LineSeriesOption } from 'echarts/charts';
 import { LineChart, } from 'echarts/charts';
 import type { TooltipComponentOption, TitleComponentOption, LegendComponentOption, DataZoomComponentOption, GridComponentOption, DatasetComponentOption, ToolboxComponentOption } from 'echarts/components';
 import { DataZoomComponent, DataZoomSliderComponent, DatasetComponent, LegendComponent, TitleComponent, ToolboxComponent, TooltipComponent } from 'echarts/components';
-import { LHAssert, SCREEN_LARGE, SCREEN_SMALL, formatDateYYYYMMDD, useViewportDimensions } from './util';
+import { LHAssert, SCREEN_LARGE, SCREEN_SMALL, formatDateYYYYMMDD } from './util';
+import useLargeChartDimensions, { useViewportDimensions } from './large_chart_dims_hook';
 import { IFinancialFuturesCOTReport, IAnyCOTReportType, IDisaggregatedFuturesCOTReport, ILegacyFuturesCOTReport } from './socrata_cot_report';
 
 echarts.use([TitleComponent, LineChart, DatasetComponent, TooltipComponent, LegendComponent, DataZoomComponent, DataZoomSliderComponent, ToolboxComponent]);
@@ -104,16 +105,7 @@ export default function StackedAbsValuesChart({ cols, data }: { data: IAnyCOTRep
     }
 
     // compute breakpoints for the ECharts instance; making it responsive
-    const viewportDimensions = useViewportDimensions();
-    let { height: eChartsHeight, width: eChartsWidth } = viewportDimensions;
-    if (viewportDimensions.width >= SCREEN_SMALL) {
-        eChartsWidth = viewportDimensions.width * 0.99;
-        eChartsHeight = viewportDimensions.height * 0.99;
-    }
-    if (viewportDimensions.width >= SCREEN_LARGE) {
-        eChartsWidth = viewportDimensions.width * 0.8;
-        eChartsHeight = viewportDimensions.height * 0.8;
-    }
+    const {eChartsWidth, eChartsHeight} = useLargeChartDimensions();
 
     return (
         <div className="my-5">

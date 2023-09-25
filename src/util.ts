@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useEffect, useRef } from 'react';
 import { LibhackCustomError } from './libhack_custom_error';
 
 export function std(arr: Array<number>, fromIdx: number | undefined, lookback: number | undefined): number {
@@ -128,28 +128,9 @@ export function formatDateYYYYMMDD(d: Date): string {
     return d.getUTCFullYear() + '-' + (d.getUTCMonth() + 1).toString().padStart(2, '0') + '-' + d.getUTCDate().toString().padStart(2, '0');
 }
 
-interface ViewportDimensions {
+export interface ViewportDimensions {
     width: number,
     height: number,
-}
-
-function getViewportDimensions(): ViewportDimensions {
-    const { innerWidth: width, innerHeight: height } = window;
-    return { width, height };
-}
-
-export function useViewportDimensions() {
-    const [viewportDimensions, setViewportDimensions] = useState(getViewportDimensions());
-    useEffect(() => {
-        function handleResize() {
-            setViewportDimensions(getViewportDimensions());
-        }
-        window.addEventListener('resize', handleResize);
-        return () => {
-            window.removeEventListener('resize', handleResize);
-        };
-    }, []);
-    return viewportDimensions;
 }
 
 // common device resolutions (px)

@@ -48,8 +48,7 @@ export default function Tff({
         })();
     }, [contract]);
     return (
-        <div className="flex flex-col items-center justify-between p-2">
-            <pre>{JSON.stringify(contract, null, 4)}</pre>
+        <div className="flex flex-col mx-auto w-11/12">
             <div className="my-3">
                 <TabularCOTViewer reports={reports}
                     columns={[
@@ -111,7 +110,7 @@ export default function Tff({
                     ]}
                 />
             </div>
-            <div className="my-2">
+            <div className="my-2 h-screen">
                 <StandardizedCotOscillator
                     yAxisLabel='Net Exposure as % Open Interest'
                     plottedColumns={[
@@ -127,7 +126,7 @@ export default function Tff({
                     priceData={priceBars}
                 />
             </div>
-            <div className="my-2">
+            <div className="my-2 min-h-screen">
                 <div className="text-lg">Long and Short Open Interest</div>
                 <LongShortOIChart
                     data={reports}
@@ -146,7 +145,7 @@ export default function Tff({
 
                     ]} />
             </div>
-            <div className="my-2">
+            <div className="my-2 min-h-screen h-screen">
                 <div className="text-lg">Changes in Commitments over N weeks</div>
                 <CommitmentChangesChart
                     dataFrame={reports}
@@ -186,7 +185,7 @@ export default function Tff({
                     }
                 />
             </div>
-            <div className="my-2">
+            <div className="my-2 min-h-screen h-full">
                 <div className="text-lg">Changes in Commitments over N weeks (normalized)</div>
                 <OpenInterestChangesNormalizedChart
                     priceData={priceBars}
@@ -220,7 +219,7 @@ export default function Tff({
                     ]}
                 />
             </div>
-            <div className="my-2">
+            <div className="my-2 min-h-screen">
                 <div className="text-lg">Number of Traders</div>
                 <NumberOfTradersChart
                     reports={reports}

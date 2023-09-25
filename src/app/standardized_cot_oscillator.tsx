@@ -8,7 +8,8 @@ import { BarChart, LineChart } from 'echarts/charts';
 import { SVGRenderer, CanvasRenderer } from 'echarts/renderers';
 import { IDisaggregatedFuturesCOTReport, IFinancialFuturesCOTReport, ILegacyFuturesCOTReport, ITraderCategory } from '@/socrata_cot_report';
 import { rollingMinMaxScaler, rollingMinMaxScalerOptimized, rollingQuantileNormalization, rollingRobustScaler, rollingZscore } from '@/chart_math';
-import { SCREEN_LARGE, SCREEN_MEDIUM, SCREEN_SMALL, useViewportDimensions, usePrevious } from '@/util';
+import { SCREEN_LARGE, SCREEN_MEDIUM, SCREEN_SMALL, usePrevious } from '@/util';
+import { useViewportDimensions } from '@/large_chart_dims_hook';
 import { PriceBar } from '@/common_types';
 import useLargeChartDimensions from '@/large_chart_dims_hook';
 
@@ -117,6 +118,10 @@ export default function StandardizedCotOscillator(
     },
 ) {
     const echartsRef = React.useRef<EChartsReactCore | null>(null);
+
+    // compute breakpoints for the ECharts instance; making it responsive
+    let { eChartsWidth, eChartsHeight } = useLargeChartDimensions();
+
     let legendSelected = React.useRef<{ [name: string]: boolean } | null>(null);
     let rememberedDataZoom = React.useRef<[number, number] | null>(null);
     const [normalizationMethod, setNormalizationMethod] = React.useState<NormalizationMethod>(NormalizationMethod.RobustScaler);
@@ -272,14 +277,14 @@ export default function StandardizedCotOscillator(
                 100.
             ];
         }
-    }, [plottedColumns, xAxisDates, legendSelected, rememberedDataZoom, lookback, normalizationMethod]);
 
-    // compute breakpoints for the ECharts instance; making it responsive
-    let { eChartsWidth, eChartsHeight } = useLargeChartDimensions();
+        echartsRef.current?.getEchartsInstance().resize({width: eChartsWidth,  height: eChartsWidth});
+    }, [plottedColumns, xAxisDates, legendSelected, rememberedDataZoom, lookback, normalizationMethod, eChartsHeight, eChartsWidth]);
+
 
     return (
-        <div className="my-5">
-            <div className="block m-2">
+        <div className="w-full mx-1">
+            <div className="m-2">
                 <label>
                     Robust Scaler
                     <input type="radio" value={NormalizationMethod.RobustScaler}
@@ -317,7 +322,7 @@ export default function StandardizedCotOscillator(
                 </label>
             </div>
 
-            <div className="block my-1">
+            <div className="my-1">
                 <label>
                     Lookback (number of weeks to use to standardize positioning):
                     <strong>
@@ -330,7 +335,7 @@ export default function StandardizedCotOscillator(
                         onChange={handleChangeZsLookback} />
                 </label>
             </div>
-            <div className="w-full">
+            <div className="m-2">
                 <EChartsReactCore
                     echarts={echarts}
                     ref={(ref) => { echartsRef.current = ref; }}
