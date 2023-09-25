@@ -28,7 +28,7 @@ export default function CommodityTree({
                     className="cursor-pointer hover:text-white text-indigo-500"
                     href={`/futures/${allCapsToSlug(contract.group!)}/${allCapsToSlug(contract.commoditySubgroupName!)}/${allCapsToSlug(contract.commodityName!)}/${contract.cftcContractMarketCode}`}
                 >
-                    {contract.marketAndExchangeNames}
+                    {contract.contractMarketName} {/*contract.marketAndExchangeNames*/}
                 </Link>
             </div>
         ));

@@ -16,9 +16,9 @@ type CommoditiesTreeType = {
 
 type CommoditiesTreeType2 = {
     [cftcCommodityCode: string]: {
-        byCommodityName: {commodityName: string, contractSets: ContractTriplet},
-        byCftcCommodityCode: {cftcCommodityCode: string, contractSets: ContractTriplet},
-        byContractMarketName: {contractMarketName: string, contractSets: ContractTriplet},
+        byCommodityName: { commodityName: string, contractSets: ContractTriplet },
+        byCftcCommodityCode: { cftcCommodityCode: string, contractSets: ContractTriplet },
+        byContractMarketName: { contractMarketName: string, contractSets: ContractTriplet },
         byMarketAndExchangeName: any,
     },
 }
@@ -31,7 +31,11 @@ export type ContractTriplet = {
     [reportType in CFTCReportType]: CommodityContractKind[];
 }
 
-export class ContractsTree {
+export type CommodityContractKindVariants = {
+    [reportType in CFTCReportType]: CommodityContractKind | undefined;
+}
+
+export class ContractsTree implements Iterable<CommodityContractKind> {
     private tff: readonly CommodityContractKind[];
     private disaggregated: readonly CommodityContractKind[];
     private legacy: readonly CommodityContractKind[];
@@ -75,6 +79,59 @@ export class ContractsTree {
         const ct: CommoditiesTreeType = this.tree[groupName][subgroupName];
         let contracts = Object.values(ct).flatMap(x => Object.values(x)).flatMap(x => Object.values(x)).flat(1);
         return contracts;
+    }
+
+    public select<WhereCols extends keyof CommodityContractKind, BinColumns extends keyof CommodityContractKind>(
+        where: { [k in WhereCols]: string }, // Pick<CommodityContractKind, QueryCols>,
+        binByCols: BinColumns[],
+    ): Map<BinColumns, Map<CommodityContractKind[keyof CommodityContractKind], CommodityContractKindVariants[]>> {
+        let outputMap = new Map<BinColumns, Map<CommodityContractKind[keyof CommodityContractKind], CommodityContractKindVariants[]>>();
+        binByCols.forEach(g => { outputMap.set(g, new Map<CommodityContractKind[keyof CommodityContractKind], CommodityContractKindVariants[]>()); });
+
+        for (const contract of this) {
+            let ok = true;
+            for (const [queryCol, queryValue] of Object.entries(where)) {
+                const entry = contract[queryCol as WhereCols];
+                if (entry !== queryValue && this.nameEncoder(entry?.toString() ?? '') !== queryValue) {
+                    ok = false;
+                    break;
+                }
+            }
+            if (!ok) continue;
+            for (const binCol of binByCols) {
+                const colValue = contract[binCol];
+                const outputBin = outputMap.get(binCol);
+                if (outputBin == null)
+                    outputMap.set(
+                        binCol,
+                        new Map<CommodityContractKind[keyof CommodityContractKind], CommodityContractKindVariants[]>()
+                    );
+                const newEntry: CommodityContractKindVariants = {
+                    [CFTCReportType.FinancialFutures]: contract.reportType === CFTCReportType.FinancialFutures ? contract : undefined,
+                    [CFTCReportType.Disaggregated]: contract.reportType === CFTCReportType.Disaggregated ? contract : undefined,
+                    [CFTCReportType.Legacy]: contract.reportType == CFTCReportType.Legacy ? contract : undefined,
+                };
+                if (!outputBin!.has(colValue)) {
+                    outputBin!.set(colValue, [newEntry]);
+                } else {
+                    let rowEntries = outputBin!.get(colValue)!;
+                    let inserted = false;
+                    for (let i = 0; i < rowEntries.length; ++i) {
+                        let match = Object.values(rowEntries[i]).find(x => x?.cftcContractMarketCode === contract.cftcContractMarketCode);
+                        if (match != null) {
+                            rowEntries[i][contract.reportType] = contract;
+                            inserted = true;
+                            break;
+                        }
+                    }
+                    if (!inserted) {
+                        rowEntries.push(newEntry);
+                    }
+                    outputBin!.set(colValue, rowEntries);
+                }
+            }
+        }
+        return outputMap;
     }
 
     private getInnerCommodityContractsSorted(
@@ -184,6 +241,10 @@ export class ContractsTree {
 
     public getCommodityCodeFromName(commodityName: string): string | null {
         return this.commodityNamesToCommodityCodes[commodityName] ?? null;
+    }
+
+    public encodeName(src: string): string {
+        return this.nameEncoder(src);
     }
 
     private buildTree(...src: Array<readonly CommodityContractKind[]>): RootCommodityContractsTreeType {

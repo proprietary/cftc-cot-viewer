@@ -65,25 +65,31 @@ export default async function Page({
                 {markets.map(({ marketAndExchangeName, contractsSet }, jdx) => (
                     <div key={jdx}>
                         <div className="my-2 text-lg">
-                            {marketAndExchangeName}
+                            {marketAndExchangeName} ({Object.values(contractsSet).flat(1).at(0)?.contractMarketName})
                         </div>
                         {contractsSet[CFTCReportType.FinancialFutures].map((contract, idx) => (
                             <Link
                                 key={idx}
                                 href={`/futures/${commodityGroupNameSlug}/${commoditySubgroupNameSlug}/${commodityNameSlug}/${contract.cftcContractMarketCode}/traders-in-financial-futures`}
-                            >Traders in Financial Futures</Link>
+                            >
+                                Traders in Financial Futures
+                            </Link>
                         ))}
                         {contractsSet[CFTCReportType.Disaggregated].map((contract, idx) => (
                             <Link
                                 key={idx}
                                 href={`/futures/${commodityGroupNameSlug}/${commoditySubgroupNameSlug}/${commodityNameSlug}/${contract.cftcContractMarketCode}/disaggregated`}
-                            >Disaggregated</Link>
+                            >
+                                Disaggregated
+                            </Link>
                         ))}
                         {contractsSet[CFTCReportType.Legacy].map((contract, idx) => (
                             <Link
                                 key={idx}
                                 href={`/futures/${commodityGroupNameSlug}/${commoditySubgroupNameSlug}/${commodityNameSlug}/${contract.cftcContractMarketCode}/legacy`}
-                            >Legacy</Link>
+                            >
+                                Legacy
+                            </Link>
                         ))}
                     </div>
                 ))}
