@@ -1,5 +1,6 @@
 import { CFTCCommodityGroupType, CFTCCommodityCode, CFTCSubgroupName, CFTCReportType } from "@/common_types";
 import { CommodityContractKind } from "./CommodityContractKind";
+import FlatteningForwardIterator from "@/lib/flattening_forward_iterator";
 
 export type RootCommodityContractsTreeType = {
     [commodityGroupName: string]: SubgroupsTreeType,
@@ -10,7 +11,16 @@ type SubgroupsTreeType = {
 }
 
 type CommoditiesTreeType = {
-    [commodityName: string]: MarketAndExchangeTreeType,
+    [commodityName: string]: MarketAndExchangeTreeType;
+}
+
+type CommoditiesTreeType2 = {
+    [cftcCommodityCode: string]: {
+        byCommodityName: {commodityName: string, contractSets: ContractTriplet},
+        byCftcCommodityCode: {cftcCommodityCode: string, contractSets: ContractTriplet},
+        byContractMarketName: {contractMarketName: string, contractSets: ContractTriplet},
+        byMarketAndExchangeName: any,
+    },
 }
 
 type MarketAndExchangeTreeType = {
@@ -22,9 +32,9 @@ export type ContractTriplet = {
 }
 
 export class ContractsTree {
-    // private tff: readonly CommodityContractKind[];
-    // private disaggregated: readonly CommodityContractKind[];
-    // private legacy: readonly CommodityContractKind[];
+    private tff: readonly CommodityContractKind[];
+    private disaggregated: readonly CommodityContractKind[];
+    private legacy: readonly CommodityContractKind[];
 
     private tree: RootCommodityContractsTreeType;
     private commodityNamesToCommodityCodes: Record<string, string> = {};
@@ -33,10 +43,14 @@ export class ContractsTree {
 
     constructor(nameEncoder: (raw: string) => string, tff: readonly CommodityContractKind[], disaggregated: readonly CommodityContractKind[], legacy: readonly CommodityContractKind[]) {
         this.nameEncoder = nameEncoder;
-        // this.tff = tff;
-        // this.disaggregated = disaggregated;
-        // this.legacy = legacy;
+        this.tff = tff;
+        this.disaggregated = disaggregated;
+        this.legacy = legacy;
         this.tree = this.buildTree(tff, disaggregated, legacy);
+    }
+
+    public [Symbol.iterator](): Iterator<CommodityContractKind> {
+        return new FlatteningForwardIterator(this.tff, this.disaggregated, this.legacy);
     }
 
     public getSubgroupNames(groupName: string): string[] {
@@ -49,6 +63,18 @@ export class ContractsTree {
 
     public getCommodityNames(groupName: string, subgroupName: string): string[] {
         return Object.keys(this.tree[groupName]?.[subgroupName] ?? {});
+    }
+
+    public getCommodityMarketNames(groupName: string, subgroupName: string): string[] {
+        const ct: CommoditiesTreeType = this.tree[groupName][subgroupName];
+        let contracts = Object.values(ct).flatMap(x => Object.values(x)).flatMap(x => Object.values(x)).flat(1);
+        return Array.from(new Set(contracts.map(x => x.contractMarketName)).values());
+    }
+
+    public getCommods(groupName: string, subgroupName: string): CommodityContractKind[] {
+        const ct: CommoditiesTreeType = this.tree[groupName][subgroupName];
+        let contracts = Object.values(ct).flatMap(x => Object.values(x)).flatMap(x => Object.values(x)).flat(1);
+        return contracts;
     }
 
     private getInnerCommodityContractsSorted(
