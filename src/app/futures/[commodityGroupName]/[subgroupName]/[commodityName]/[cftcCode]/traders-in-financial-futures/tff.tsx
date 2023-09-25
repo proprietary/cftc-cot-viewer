@@ -2,6 +2,7 @@
 
 import OpenInterestChangesNormalizedChart from '@/app/open_interest_changes_normalized_chart';
 import StandardizedCotOscillator from '@/app/standardized_cot_oscillator';
+import TabularCOTViewer from '@/app/tabular_cot_viewer';
 import { CachingCFTCApi } from '@/cftc_api';
 import { CommodityCodes } from '@/cftc_codes_mapping';
 import CommitmentChangesChart from '@/commitment_changes_chart';
@@ -29,7 +30,7 @@ export default function Tff({
             const reportsResult = await cftcApi.requestDateRange({
                 cftcContractMarketCode: contract.cftcContractMarketCode,
                 reportType: CFTCReportType.FinancialFutures,
-                startDate: new Date(2000, 0, 1),
+                startDate: new Date(Math.min(new Date(2006, 0, 1).getTime(), Date.parse(contract.oldestReportDate))),
                 endDate: new Date(),
             }) as IFinancialFuturesCOTReport[];
             setReports(reportsResult);
@@ -49,6 +50,67 @@ export default function Tff({
     return (
         <div className="flex flex-col items-center justify-between p-2">
             <pre>{JSON.stringify(contract, null, 4)}</pre>
+            <div className="my-3">
+                <TabularCOTViewer reports={reports}
+                    columns={[
+                        {
+                            name: 'Dealers',
+                            longs: 'dealer_positions_long_all',
+                            shorts: 'dealer_positions_short_all',
+                            spreading: 'dealer_positions_spread_all',
+                            longsPctOI: 'pct_of_oi_dealer_long_all',
+                            shortsPctOI: 'pct_of_oi_dealer_short_all',
+                            spreadingPctOI: 'pct_of_oi_dealer_spread_all',
+                            tradersLong: 'traders_dealer_long_all',
+                            tradersShort: 'traders_dealer_short_all',
+                            tradersSpreading: 'traders_dealer_spread_all',
+                        },
+                        {
+                            name: 'Asset Managers',
+                            longs: 'asset_mgr_positions_long',
+                            shorts: 'asset_mgr_positions_short',
+                            spreading: 'asset_mgr_positions_spread',
+                            longsPctOI: 'pct_of_oi_asset_mgr_long',
+                            shortsPctOI: 'pct_of_oi_asset_mgr_short',
+                            spreadingPctOI: 'pct_of_oi_asset_mgr_spread',
+                            tradersLong: 'traders_asset_mgr_long_all',
+                            tradersShort: 'traders_asset_mgr_short_all',
+                            tradersSpreading: 'traders_asset_mgr_spread',
+                        },
+                        {
+                            name: 'Leveraged Funds',
+                            longs: 'lev_money_positions_long',
+                            shorts: 'lev_money_positions_short',
+                            spreading: 'lev_money_positions_spread',
+                            longsPctOI: 'pct_of_oi_lev_money_long',
+                            shortsPctOI: 'pct_of_oi_lev_money_short',
+                            spreadingPctOI: 'pct_of_oi_lev_money_spread',
+                            tradersLong: 'traders_lev_money_long_all',
+                            tradersShort: 'traders_lev_money_short_all',
+                            tradersSpreading: 'traders_lev_money_spread',
+                        },
+                        {
+                            name: 'Other Reportables',
+                            longs: 'other_rept_positions_long',
+                            shorts: 'other_rept_positions_short',
+                            spreading: 'other_rept_positions_spread',
+                            longsPctOI: 'pct_of_oi_other_rept_long',
+                            shortsPctOI: 'pct_of_oi_other_rept_short',
+                            spreadingPctOI: 'pct_of_oi_other_rept_spread',
+                            tradersLong: 'traders_other_rept_long_all',
+                            tradersShort: 'traders_other_rept_short',
+                            tradersSpreading: 'traders_other_rept_spread',
+                        },
+                        {
+                            name: 'Non-Reportables',
+                            longs: 'nonrept_positions_long_all',
+                            shorts: 'nonrept_positions_short_all',
+                            longsPctOI: 'pct_of_oi_nonrept_long_all',
+                            shortsPctOI: 'pct_of_oi_nonrept_short_all',
+                        },
+                    ]}
+                />
+            </div>
             <div className="my-2">
                 <StandardizedCotOscillator
                     yAxisLabel='Net Exposure as % Open Interest'
