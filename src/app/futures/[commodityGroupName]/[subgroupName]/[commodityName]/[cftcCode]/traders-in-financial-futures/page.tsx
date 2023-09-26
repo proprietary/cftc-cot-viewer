@@ -28,7 +28,7 @@ export default async function Page({
         cftcCode,
     );
     return (
-        <div className="bg-inherit">
+        <div className="min-h-screen">
 
             <nav aria-label="breadcrumbs" className="py-2">
                 <ol className="list-reset flex text-gray-700">

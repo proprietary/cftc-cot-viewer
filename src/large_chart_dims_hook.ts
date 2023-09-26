@@ -11,18 +11,18 @@ export default function useLargeChartDimensions() {
     // mobile
     eChartsWidth = viewportDimensions.width * 0.95;
     eChartsHeight = viewportDimensions.height * 0.8;
-    if (viewportDimensions.width >= SCREEN_SMALL) {
-        eChartsWidth = viewportDimensions.width * 0.95;
-        eChartsHeight = viewportDimensions.height * 0.7;
-    }
-    if (viewportDimensions.width >= SCREEN_MEDIUM) {
-        eChartsHeight = 500;
-        eChartsWidth = 700;
-    }
-    if (viewportDimensions.width >= SCREEN_LARGE) {
-        eChartsWidth = viewportDimensions.width * 0.8;
-        eChartsHeight = viewportDimensions.height * 0.5;
-    }
+    // if (viewportDimensions.width >= SCREEN_SMALL) {
+    //     eChartsWidth = viewportDimensions.width * 0.95;
+    //     eChartsHeight = viewportDimensions.height * 0.7;
+    // }
+    // if (viewportDimensions.width >= SCREEN_MEDIUM) {
+    //     eChartsHeight = 700;
+    //     eChartsWidth = 750;
+    // }
+    // if (viewportDimensions.width >= SCREEN_LARGE) {
+    //     eChartsWidth = viewportDimensions.width * 0.8;
+    //     eChartsHeight = viewportDimensions.height * 0.5;
+    // }
     return { eChartsWidth, eChartsHeight };
 }
 export function useViewportDimensions() {

@@ -48,7 +48,7 @@ export default function Tff({
         })();
     }, [contract]);
     return (
-        <div className="flex flex-col mx-auto w-11/12">
+        <div className="grid grid-cols-1 gap-4 mx-2">
             <div className="my-3">
                 <TabularCOTViewer reports={reports}
                     columns={[
@@ -110,7 +110,8 @@ export default function Tff({
                     ]}
                 />
             </div>
-            <div className="my-2 h-screen">
+            <div className="my-2 h-screen mx-auto">
+                <h2 className="text-2xl text-center p-4">Net Positioning</h2>
                 <StandardizedCotOscillator
                     yAxisLabel='Net Exposure as % Open Interest'
                     plottedColumns={[
@@ -127,7 +128,9 @@ export default function Tff({
                 />
             </div>
             <div className="my-2 min-h-screen">
-                <div className="text-lg">Long and Short Open Interest</div>
+                <h2 className="text-2xl text-center p-4">
+                    Long and Short Open Interest
+                </h2>
                 <LongShortOIChart
                     data={reports}
                     longCols={[{ name: 'Dealers', column: 'dealer_positions_long_all', },
@@ -146,7 +149,9 @@ export default function Tff({
                     ]} />
             </div>
             <div className="my-2 min-h-screen h-screen">
-                <div className="text-lg">Changes in Commitments over N weeks</div>
+                <div className="text-2xl text-center p-4">
+                    Changes in Commitments over N weeks
+                </div>
                 <CommitmentChangesChart
                     dataFrame={reports}
                     cols={
@@ -185,8 +190,10 @@ export default function Tff({
                     }
                 />
             </div>
-            <div className="my-2 min-h-screen h-full">
-                <div className="text-lg">Changes in Commitments over N weeks (normalized)</div>
+            <div className="my-2 min-h-screen">
+                <div className="text-2xl text-center p-4">
+                    Changes in Commitments over N weeks (normalized)
+                </div>
                 <OpenInterestChangesNormalizedChart
                     priceData={priceBars}
                     reports={reports}
@@ -220,7 +227,9 @@ export default function Tff({
                 />
             </div>
             <div className="my-2 min-h-screen">
-                <div className="text-lg">Number of Traders</div>
+                <div className="text-2xl text-center p-4">
+                    Number of Traders
+                </div>
                 <NumberOfTradersChart
                     reports={reports}
                     cols={
