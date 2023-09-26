@@ -3,25 +3,14 @@ import { fetchAllAvailableContracts } from "@/lib/socrata_api";
 import GroupTree from "./group_tree";
 import Link from "next/link";
 import { FetchAllAvailableContracts } from "@/lib/fetchAvailableContracts";
+import Breadcrumbs from "@/components/breadcrumbs";
 
 export default async function Page() {
     const contractsTree = await FetchAllAvailableContracts();
     return (
-        <div className="my-2">
+        <div className="flex flex-col min-h-screen mx-auto w-11/12">
 
-            <nav aria-label="breadcrumbs" className="rounded-lg block my-2">
-                <ol className="list-reset flex text-gray-700">
-                    <li>
-                        <Link href={`/`} className="text-blue-500 hover:text-blue-700">
-                            Home
-                        </Link>
-                    </li>
-                    <li>
-                        Futures
-                    </li>
-                </ol>
-            </nav>
-
+            <Breadcrumbs />
 
             <h1 className="block">Futures</h1>
             {contractsTree.getGroupNames().map((commodityGroupName, idx) => {

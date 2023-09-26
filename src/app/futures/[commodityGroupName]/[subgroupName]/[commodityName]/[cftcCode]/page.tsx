@@ -3,6 +3,7 @@ import { CFTCCommodityGroupType, CFTCReportType } from "@/common_types";
 import { allCapsToTitle, allCapsToSlug, slugToTitle } from "@/lib/cftc_api_utils";
 import Link from "next/link";
 import { FetchAllAvailableContracts } from "@/lib/fetchAvailableContracts";
+import Breadcrumbs from "@/components/breadcrumbs";
 
 export default async function Page({
     params
@@ -19,45 +20,15 @@ export default async function Page({
     const subgroupNameSlug = decodeURIComponent(params.subgroupName);
     const commodityNameSlug = decodeURIComponent(params.commodityName);
     const cftcCode = decodeURIComponent(params.cftcCode);
-    const [ marketAndExchangeName, contractSet ] = contractsTree.getContractSet(commodityGroupNameSlug, subgroupNameSlug, commodityNameSlug, cftcCode);
+    const [marketAndExchangeName, contractSet] = contractsTree.getContractSet(commodityGroupNameSlug, subgroupNameSlug, commodityNameSlug, cftcCode);
     return (
-        <div className="flex min-h-screen flex-col p-10">
-
-            <nav aria-label="breadcrumbs" className="rounded-lg block my-2 p-4">
-                <ol className="list-reset flex text-gray-700">
-                    <li className="flex items-center">
-                        <Link href={`/`} className="text-blue-500 hover:text-blue-700">
-                            Home
-                        </Link>
-                    </li>
-                    <li className="flex items-center">
-                        <Link href={`/futures`} className="text-blue-500 hover:text-blue-700">
-                            Futures
-                        </Link>
-                    </li>
-                    <li className="flex items-center">
-                        <Link href={`/futures/${commodityGroupNameSlug}`} className="text-blue-500 hover:text-blue-700">
-                            {slugToTitle(commodityGroupNameSlug)}
-                        </Link>
-                    </li>
-                    <li className="flex items-center">
-                        <Link href={`/futures/${commodityGroupNameSlug}/${subgroupNameSlug}`}
-                            className="text-blue-500 hover:text-blue-700">
-                            {slugToTitle(subgroupNameSlug)}
-                        </Link>
-                    </li>
-                    <li className="flex items-center">
-                        <Link href={`/futures/${commodityGroupNameSlug}/${subgroupNameSlug}/${commodityNameSlug}`}
-                            className="text-blue-500 hover:text-blue-700">
-                            {slugToTitle(commodityNameSlug)}
-                        </Link>
-                    </li>
-                    <li className="flex items-center">
-                        {cftcCode}
-                    </li>
-                </ol>
-            </nav>
-
+        <div className="flex min-h-screen flex-col mx-auto w-11/12">
+            <Breadcrumbs
+                commodityGroupNameSlug={commodityGroupNameSlug}
+                subgroupNameSlug={subgroupNameSlug}
+                commodityNameSlug={commodityNameSlug}
+                cftcCode={cftcCode}
+            />
             <div>
                 <div>
                     <div className="my-2 text-lg">

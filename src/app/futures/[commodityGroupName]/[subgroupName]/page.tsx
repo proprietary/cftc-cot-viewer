@@ -5,6 +5,7 @@ import SubgroupTree from "@/app/futures/subgroup_tree";
 import Link from "next/link";
 import { FetchAllAvailableContracts } from "@/lib/fetchAvailableContracts";
 import { CommodityContractKind } from "@/lib/CommodityContractKind";
+import Breadcrumbs from "@/components/breadcrumbs";
 
 export default async function Page({
     params
@@ -50,32 +51,11 @@ export default async function Page({
             }
         );
     return (
-        <div className="flex min-h-screen flex-col p-10">
-            <nav aria-label="breadcrumbs" className="rounded-lg block my-2">
-                <ol className="list-reset flex text-gray-700">
-                    <li>
-                        <Link href={`/`} className="text-blue-500 hover:text-blue-700">
-                            Home
-                        </Link>
-                    </li>
-                    <li>
-                        <Link href={`/futures`} className="text-blue-500 hover:text-blue-700">
-                            Futures
-                        </Link>
-                    </li>
-                    <li>
-                        <Link
-                            href={`/futures/${commodityGroupNameSlug}`}
-                            className="text-blue-500 hover:text-blue-700"
-                        >
-                            {slugToTitle(commodityGroupNameSlug)}
-                        </Link>
-                    </li>
-                    <li>
-                        {slugToTitle(subgroupNameSlug)}
-                    </li>
-                </ol>
-            </nav>
+        <div className="flex min-h-screen flex-col mx-auto w-11/12">
+            <Breadcrumbs
+                commodityGroupNameSlug={commodityGroupNameSlug}
+                subgroupNameSlug={subgroupNameSlug}
+            />
             {commodContracts2.map(([commodityName, contracts], idx) => (
                 <div key={idx} className="my-4">
                     <Link

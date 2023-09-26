@@ -5,6 +5,7 @@ import Link from "next/link";
 import CommodityTree from "@/app/futures/commodity_tree";
 import { FetchAllAvailableContracts } from "@/lib/fetchAvailableContracts";
 import { CommodityContractKind } from "@/lib/CommodityContractKind";
+import Breadcrumbs from "@/components/breadcrumbs";
 
 export default async function Page({
     params
@@ -21,41 +22,12 @@ export default async function Page({
         commodityNameSlug,
     );
     return (
-        <div className="flex min-h-screen flex-col p-10">
-            <pre>{JSON.stringify(params, null, 4)}</pre>
-            <nav aria-label="breadcrumbs" className="rounded-lg block my-2">
-                <ol className="list-reset flex text-gray-700">
-                    <li>
-                        <Link href={`/`} className="text-blue-500 hover:text-blue-700">
-                            Home
-                        </Link>
-                    </li>
-                    <li>
-                        <Link href={`/futures`} className="text-blue-500 hover:text-blue-700">
-                            Futures
-                        </Link>
-                    </li>
-                    <li>
-                        <Link
-                            href={`/futures/${commodityGroupNameSlug}`}
-                            className="text-blue-500 hover:text-blue-700"
-                        >
-                            {slugToTitle(commodityGroupNameSlug)}
-                        </Link>
-                    </li>
-                    <li>
-                        <Link
-                            href={`/futures/${commodityGroupNameSlug}/${commoditySubgroupNameSlug}`}
-                            className="text-blue-500 hover:text-blue-700"
-                        >
-                            {slugToTitle(commoditySubgroupNameSlug)}
-                        </Link>
-                    </li>
-                    <li>
-                        {slugToTitle(commodityNameSlug)}
-                    </li>
-                </ol>
-            </nav>
+        <div className="flex flex-col min-h-screen w-11/12 mx-auto">
+            <Breadcrumbs
+                commodityGroupNameSlug={commodityGroupNameSlug}
+                subgroupNameSlug={commoditySubgroupNameSlug}
+                commodityNameSlug={commodityNameSlug}
+            />
 
             <h3 className="text-2xl antialiased font-bold my-10">
                 {slugToTitle(commodityNameSlug)}
