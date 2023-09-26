@@ -21,11 +21,14 @@ export default async function Page({
     return (
         <div className="flex flex-col min-h-screen mx-auto w-11/12">
             <Breadcrumbs commodityGroupNameSlug={commodityGroupNameSlug} />
-            <h2 className="block my-2">{slugToTitle(commodityGroupNameSlug)}</h2>
+            <h2 className="my-5 text-2xl antialiased">{slugToTitle(commodityGroupNameSlug)}</h2>
             <div>
                 {subgroups.map((subgroupName, idx) => (
-                    <div key={idx}>
-                        <Link href={`/futures/${commodityGroupNameSlug}/${subgroupName}`}>
+                    <div key={idx} className="py-3">
+                        <Link
+                            className="text-blue-500 hover:text-blue-700"
+                            href={`/futures/${commodityGroupNameSlug}/${subgroupName}`}
+                        >
                             {slugToTitle(subgroupName)}
                         </Link>
                     </div>

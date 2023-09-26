@@ -12,12 +12,12 @@ export default async function Page() {
 
             <Breadcrumbs />
 
-            <h1 className="block">Futures</h1>
+            <h1 className="text-2xl antialiased my-5">Futures</h1>
             {contractsTree.getGroupNames().map((commodityGroupName, idx) => {
                 return (
                     <div key={idx} className="block my-5 text-lg">
                         <Link
-                            className="cursor-pointer text-blue-700 hover:text-gray-100"
+                            className="cursor-pointer text-blue-500 hover:text-blue-700"
                             href={`/futures/${commodityGroupName}`}
                         >
                             {slugToTitle(commodityGroupName)}

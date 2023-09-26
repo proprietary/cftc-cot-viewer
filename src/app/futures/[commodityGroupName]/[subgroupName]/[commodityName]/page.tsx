@@ -35,34 +35,46 @@ export default async function Page({
 
             <div>
                 {markets.map(({ marketAndExchangeName, contractsSet }, jdx) => (
-                    <div key={jdx}>
-                        <div className="my-2 text-lg">
-                            {marketAndExchangeName} ({Object.values(contractsSet).flat(1).at(0)?.contractMarketName})
+                    <div key={jdx} className="my-5">
+                        <div className="text-lg py-2 inline-flex">
+                            <div className="font-medium uppercase tracking-wide pr-2">{marketAndExchangeName}</div>
+                            ({Object.values(contractsSet).flat(1).at(0)?.contractMarketName})
                         </div>
-                        {contractsSet[CFTCReportType.FinancialFutures].map((contract, idx) => (
-                            <Link
-                                key={idx}
-                                href={`/futures/${commodityGroupNameSlug}/${commoditySubgroupNameSlug}/${commodityNameSlug}/${contract.cftcContractMarketCode}/traders-in-financial-futures`}
-                            >
-                                Traders in Financial Futures
-                            </Link>
-                        ))}
-                        {contractsSet[CFTCReportType.Disaggregated].map((contract, idx) => (
-                            <Link
-                                key={idx}
-                                href={`/futures/${commodityGroupNameSlug}/${commoditySubgroupNameSlug}/${commodityNameSlug}/${contract.cftcContractMarketCode}/disaggregated`}
-                            >
-                                Disaggregated
-                            </Link>
-                        ))}
-                        {contractsSet[CFTCReportType.Legacy].map((contract, idx) => (
-                            <Link
-                                key={idx}
-                                href={`/futures/${commodityGroupNameSlug}/${commoditySubgroupNameSlug}/${commodityNameSlug}/${contract.cftcContractMarketCode}/legacy`}
-                            >
-                                Legacy
-                            </Link>
-                        ))}
+                        <ul className="ml-5">
+                            {contractsSet[CFTCReportType.FinancialFutures].map((contract, idx) => (
+                                <li className="list-disc">
+                                    <Link
+                                        key={idx}
+                                        className="text-blue-500 hover:text-blue-700"
+                                        href={`/futures/${commodityGroupNameSlug}/${commoditySubgroupNameSlug}/${commodityNameSlug}/${contract.cftcContractMarketCode}/traders-in-financial-futures`}
+                                    >
+                                        Traders in Financial Futures
+                                    </Link>
+                                </li>
+                            ))}
+                            {contractsSet[CFTCReportType.Disaggregated].map((contract, idx) => (
+                                <li className="list-disc">
+                                    <Link
+                                        key={idx}
+                                        className="text-blue-500 hover:text-blue-700"
+                                        href={`/futures/${commodityGroupNameSlug}/${commoditySubgroupNameSlug}/${commodityNameSlug}/${contract.cftcContractMarketCode}/disaggregated`}
+                                    >
+                                        Disaggregated
+                                    </Link>
+                                </li>
+                            ))}
+                            {contractsSet[CFTCReportType.Legacy].map((contract, idx) => (
+                                <li className="list-disc">
+                                    <Link
+                                        key={idx}
+                                        className="text-blue-500 hover:text-blue-700"
+                                        href={`/futures/${commodityGroupNameSlug}/${commoditySubgroupNameSlug}/${commodityNameSlug}/${contract.cftcContractMarketCode}/legacy`}
+                                    >
+                                        Legacy
+                                    </Link>
+                                </li>
+                            ))}
+                        </ul>
                     </div>
                 ))}
             </div>

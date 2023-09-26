@@ -31,24 +31,35 @@ export default async function Page({
             />
             <div>
                 <div>
-                    <div className="my-2 text-lg">
+                    <div className="my-5 text-2xl font-bold">
                         {marketAndExchangeName}
                     </div>
-                    {contractSet && contractSet[CFTCReportType.FinancialFutures]?.length > 0 && (
-                        <Link
-                            href={`/futures/${commodityGroupNameSlug}/${subgroupNameSlug}/${commodityNameSlug}/${cftcCode}/traders-in-financial-futures`}
-                        >Traders in Financial Futures</Link>
-                    )}
-                    {contractSet && contractSet[CFTCReportType.Disaggregated]?.length > 0 && (
-                        <Link
-                            href={`/futures/${commodityGroupNameSlug}/${commodityNameSlug}/${commodityNameSlug}/${cftcCode}/disaggregated`}
-                        >Disaggregated</Link>
-                    )}
-                    {contractSet && contractSet[CFTCReportType.Legacy]?.length > 0 && (
-                        <Link
-                            href={`/futures/${commodityGroupNameSlug}/${commodityNameSlug}/${commodityNameSlug}/${cftcCode}/legacy`}
-                        >Legacy</Link>
-                    )}
+                    <ul className="space-y-5">
+                        {contractSet && contractSet[CFTCReportType.FinancialFutures]?.length > 0 && (
+                            <li className="list-disc">
+                                <Link
+                                    className="text-blue-500 hover:text-blue-700"
+                                    href={`/futures/${commodityGroupNameSlug}/${subgroupNameSlug}/${commodityNameSlug}/${cftcCode}/traders-in-financial-futures`}
+                                >Traders in Financial Futures</Link>
+                            </li>
+                        )}
+                        {contractSet && contractSet[CFTCReportType.Disaggregated]?.length > 0 && (
+                            <li className="list-disc">
+                                <Link
+                                    className="text-blue-500 hover:text-blue-700"
+                                    href={`/futures/${commodityGroupNameSlug}/${commodityNameSlug}/${commodityNameSlug}/${cftcCode}/disaggregated`}
+                                >Disaggregated</Link>
+                            </li>
+                        )}
+                        {contractSet && contractSet[CFTCReportType.Legacy]?.length > 0 && (
+                            <li className="list-disc">
+                                <Link
+                                    className="text-blue-500 hover:text-blue-700"
+                                    href={`/futures/${commodityGroupNameSlug}/${commodityNameSlug}/${commodityNameSlug}/${cftcCode}/legacy`}
+                                >Legacy</Link>
+                            </li>
+                        )}
+                    </ul>
                 </div>
             </div>
         </div>
