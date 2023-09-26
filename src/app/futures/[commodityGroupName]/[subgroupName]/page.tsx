@@ -15,7 +15,7 @@ export default async function Page({
     const contractsTree = await FetchAllAvailableContracts();
     const commodityGroupNameSlug = decodeURIComponent(params.commodityGroupName);
     const subgroupNameSlug = decodeURIComponent(params.subgroupName);
-    let c = contractsTree.select(
+    let c = Array.from(contractsTree.select(
         {
             commoditySubgroupName: subgroupNameSlug,
             group: commodityGroupNameSlug,
@@ -23,75 +23,58 @@ export default async function Page({
         [
             "commodityName",
         ],
-    )
-    const MapToJson = (m: any) => {
-        const output: any = {};
-        m.forEach((value: any, key: any) => {
-            if (value instanceof Map) {
-                output[key] = MapToJson(value);
-            } else {
-                output[key] = value;
-            }
-        });
-        return output;
-    }
-    let commodContracts2 = Array.from(c.get("commodityName")!.entries()!)
-        .sort(
-            ([_1, a], [_2, b]) => {
-                const oldestA = Math.min(...a.flatMap(x => Object.values(x)).map(x => x ? Date.parse(x.oldestReportDate) : Infinity));
-                const oldestB = Math.min(...b.flatMap(x => Object.values(x)).map(x => x ? Date.parse(x.oldestReportDate) : Infinity));
-                return oldestA - oldestB;
-            }
-        );
+    ).get("commodityName")!.entries());
     return (
         <div className="flex min-h-screen flex-col mx-auto w-11/12">
             <Breadcrumbs
                 params={params}
             />
-            {commodContracts2.map(([commodityName, contracts], idx) => (
+            {c.map(([commodityName, contracts], idx) => (
                 <div key={idx} className="my-4">
                     <Link
-                        href={`/futures/${params.commodityGroupName}/${params.subgroupName}/${allCapsToSlug(commodityName as string)}`}
+                        className="font-bold text-2xl my-10"
+                        href={`/futures/${params.commodityGroupName}/${params.subgroupName}/${encodeURIComponent(allCapsToSlug(commodityName as string))}`}
                     >
-                        <span className="font-bold text-lg">{commodityName}</span>
+                        {commodityName}
                     </Link>
                     <div className="my-2 ml-3 flex flex-col gap-3">
-                        {contracts.map((contract, jdx) => (
-                            <div key={jdx}>
-                                <div>
-                                    <span className="font-semibold">
-                                        {Object.values(contract).filter(x => x != null).at(0)?.contractMarketName}
-                                    </span>
-                                    <span className="text-sm ml-3">
-                                        {Object.values(contract).filter(x => x != null).at(0)?.marketAndExchangeNames}
-                                    </span>
+                        {contracts.sort((a, b) => Math.min(...Object.values(a).map(x => x ? Date.parse(x.oldestReportDate) : Infinity)) - Math.min(...Object.values(b).map(x => x ? Date.parse(x.oldestReportDate) : Infinity)))
+                            .map((contract, jdx) => (
+                                <div key={jdx}>
+                                    <div>
+                                        <span className="font-semibold">
+                                            {Object.values(contract).filter(x => x != null).at(0)?.contractMarketName}
+                                        </span>
+                                        <span className="text-sm ml-3">
+                                            {Object.values(contract).filter(x => x != null).at(0)?.marketAndExchangeNames}
+                                        </span>
+                                    </div>
+                                    {contract[CFTCReportType.FinancialFutures] != null && (
+                                        <Link
+                                            className="px-2 text-blue-700 hover:text-blue-500"
+                                            href={`/futures/${params.commodityGroupName}/${params.subgroupName}/${encodeURIComponent(allCapsToSlug(contract[CFTCReportType.FinancialFutures].commodityName))}/${contract[CFTCReportType.FinancialFutures].cftcContractMarketCode}/traders-in-financial-futures`}
+                                        >
+                                            Traders in Financial Futures
+                                        </Link>
+                                    )}
+                                    {contract[CFTCReportType.Disaggregated] != null && (
+                                        <Link
+                                            className="px-2 text-blue-700 hover:text-blue-500"
+                                            href={`/futures/${params.commodityGroupName}/${params.subgroupName}/${encodeURIComponent(allCapsToSlug(contract[CFTCReportType.Disaggregated].commodityName))}/${contract[CFTCReportType.Disaggregated].cftcContractMarketCode}/disaggregated`}
+                                        >
+                                            Disaggregated
+                                        </Link>
+                                    )}
+                                    {contract[CFTCReportType.Legacy] != null && (
+                                        <Link
+                                            className="px-2 text-blue-700 hover:text-blue-500"
+                                            href={`/futures/${params.commodityGroupName}/${params.subgroupName}/${encodeURIComponent(allCapsToSlug(contract[CFTCReportType.Legacy].commodityName))}/${contract[CFTCReportType.Legacy].cftcContractMarketCode}/legacy`}
+                                        >
+                                            Legacy
+                                        </Link>
+                                    )}
                                 </div>
-                                {contract[CFTCReportType.FinancialFutures] != null && (
-                                    <Link
-                                        className="px-2 text-blue-700 hover:text-blue-500"
-                                        href={`/futures/${params.commodityGroupName}/${params.subgroupName}/${encodeURIComponent(allCapsToSlug(commodityName as string))}/${contract[CFTCReportType.FinancialFutures].cftcContractMarketCode}/traders-in-financial-futures`}
-                                    >
-                                        Traders in Financial Futures
-                                    </Link>
-                                )}
-                                {contract[CFTCReportType.Disaggregated] != null && (
-                                    <Link
-                                        className="px-2 text-blue-700 hover:text-blue-500"
-                                        href={`/futures/${params.commodityGroupName}/${params.subgroupName}/${encodeURIComponent(allCapsToSlug(commodityName as string))}/${contract[CFTCReportType.Disaggregated].cftcContractMarketCode}/disaggregated`}
-                                    >
-                                        Disaggregated
-                                    </Link>
-                                )}
-                                {contract[CFTCReportType.Legacy] != null && (
-                                    <Link
-                                        className="px-2 text-blue-700 hover:text-blue-500"
-                                        href={`/futures/${params.commodityGroupName}/${params.subgroupName}/${encodeURIComponent(allCapsToSlug(commodityName as string))}/${contract[CFTCReportType.Legacy].cftcContractMarketCode}/legacy`}
-                                    >
-                                        Legacy
-                                    </Link>
-                                )}
-                            </div>
-                        ))}
+                            ))}
                     </div>
                 </div>
             ))}
