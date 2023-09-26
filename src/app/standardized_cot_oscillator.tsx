@@ -255,13 +255,18 @@ export default function StandardizedCotOscillator(
 
     // update series
     React.useEffect(() => {
+        const pds = generatePriceDataSeries(priceData ?? []);
         echartsRef.current?.getEchartsInstance().setOption({
-            series: computeSeries(),
+            series: [
+                ...computeSeries(),
+                ...(pds?.series ?? []),
+            ],
             yAxis: [
                 {
                     id: 'cot-net-positioning-axis',
                     name: yAxisLabels[normalizationMethod](yAxisLabel),
                 },
+                ...(pds?.yAxis ?? {}),
             ],
             dataZoom: [
                 {
@@ -375,4 +380,26 @@ export default function StandardizedCotOscillator(
             </div>
         </div>
     );
+}
+
+const generatePriceDataSeries = (priceData: readonly PriceBar[]) => {
+    let dst = {
+        yAxis: [
+            {
+                id: 'underlying-price-axis',
+                type: 'value',
+                name: 'Price',
+                scale: true,
+            },
+        ],
+        series: [
+            {
+                name: 'Price',
+                type: 'line',
+                yAxisIndex: 1,
+                data: priceData.map(x => x.close),
+            }
+        ]
+    };
+    return dst;
 }

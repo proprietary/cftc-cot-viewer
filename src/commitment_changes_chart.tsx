@@ -15,10 +15,9 @@ import EChartsReactCore from 'echarts-for-react/lib/core';
 
 echarts.use([BarChart, TitleComponent, GraphicComponent, LegendComponent, DataZoomComponent, DatasetComponent, GridComponent]);
 
-export interface IDataFrameColumns {
-    column: keyof IFinancialFuturesCOTReport,
-    longs: keyof IFinancialFuturesCOTReport,
-    shorts: keyof IFinancialFuturesCOTReport,
+export interface IDataFrameColumns<T extends IFinancialFuturesCOTReport | IDisaggregatedFuturesCOTReport | ILegacyFuturesCOTReport> {
+    longs: keyof T,
+    shorts: keyof T,
     name: string,
 }
 
@@ -30,12 +29,12 @@ enum PositioningAggregationMethod {
     Shorts = 'Shorts',
 }
 
-export default function CommitmentChangesChart({
+export default function CommitmentChangesChart<T extends IFinancialFuturesCOTReport | IDisaggregatedFuturesCOTReport | ILegacyFuturesCOTReport>({
     dataFrame,
     cols,
 }: {
-    dataFrame: Array<IFinancialFuturesCOTReport>,
-    cols: IDataFrameColumns[],
+    dataFrame: Array<T>,
+    cols: IDataFrameColumns<T>[],
 }) {
     type ECOption = echarts.ComposeOption<BarSeriesOption | TitleComponentOption | GraphicComponentOption | GridComponentOption | LegendComponentOption | ToolboxComponentOption | DataZoomComponentOption | TooltipComponentOption>;
     const echartsRef = React.useRef<EChartsReactCore | null>(null);

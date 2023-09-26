@@ -44,7 +44,7 @@ export default async function Page({
                             <li className="list-disc">
                                 <Link
                                     className="text-blue-500 hover:text-blue-700"
-                                    href={`/futures/${commodityGroupNameSlug}/${commodityNameSlug}/${commodityNameSlug}/${cftcCode}/disaggregated`}
+                                    href={`/futures/${commodityGroupNameSlug}/${subgroupNameSlug}/${commodityNameSlug}/${cftcCode}/disaggregated`}
                                 >Disaggregated</Link>
                             </li>
                         )}
@@ -52,7 +52,7 @@ export default async function Page({
                             <li className="list-disc">
                                 <Link
                                     className="text-blue-500 hover:text-blue-700"
-                                    href={`/futures/${commodityGroupNameSlug}/${commodityNameSlug}/${commodityNameSlug}/${cftcCode}/legacy`}
+                                    href={`/futures/${commodityGroupNameSlug}/${subgroupNameSlug}/${commodityNameSlug}/${cftcCode}/legacy`}
                                 >Legacy</Link>
                             </li>
                         )}

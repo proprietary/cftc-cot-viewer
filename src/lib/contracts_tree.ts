@@ -82,7 +82,7 @@ export class ContractsTree implements Iterable<CommodityContractKind> {
     }
 
     public select<WhereCols extends keyof CommodityContractKind, BinColumns extends keyof CommodityContractKind>(
-        where: { [k in WhereCols]: string }, // Pick<CommodityContractKind, QueryCols>,
+        where: { [k in WhereCols]: CommodityContractKind[keyof CommodityContractKind] }, // Pick<CommodityContractKind, QueryCols>,
         binByCols: BinColumns[],
     ): Map<BinColumns, Map<CommodityContractKind[keyof CommodityContractKind], CommodityContractKindVariants[]>> {
         let outputMap = new Map<BinColumns, Map<CommodityContractKind[keyof CommodityContractKind], CommodityContractKindVariants[]>>();
@@ -173,8 +173,9 @@ export class ContractsTree implements Iterable<CommodityContractKind> {
     }
 
     public getCommodityContract(groupName: string, subgroupName: string, commodityName: string, reportType: CFTCReportType, cftcContractMarketCode: string): CommodityContractKind | null {
+        console.log(`groupname: ${groupName}, commodityName: ${commodityName}, reportType: ${reportType}, cftcCode: ${cftcContractMarketCode}`)
         const cons: MarketAndExchangeTreeType = this.tree[groupName]?.[subgroupName]?.[commodityName];
-        for (const [_, contractSet] of Object.entries(cons)) {
+        for (const [_, contractSet] of Object.entries(cons ?? {})) {
             const needle = contractSet[reportType].find(x => x.cftcContractMarketCode === cftcContractMarketCode);
             if (needle != null) {
                 return needle;
@@ -207,7 +208,7 @@ export class ContractsTree implements Iterable<CommodityContractKind> {
         cftcContractMarketCode: string,
     ): [marketAndExchangeName: string, contractSet: ContractTriplet] {
         let cons: MarketAndExchangeTreeType = this.tree[groupName]?.[subgroupName]?.[commodityName];
-        for (const [marketAndExchangeName, contractSet] of Object.entries(cons)) {
+        for (const [marketAndExchangeName, contractSet] of Object.entries(cons ?? {})) {
             for (const contracts of Object.values(contractSet)) {
                 if (contracts.findIndex(x => x.cftcContractMarketCode === cftcContractMarketCode) !== -1) {
                     return [marketAndExchangeName, contractSet];

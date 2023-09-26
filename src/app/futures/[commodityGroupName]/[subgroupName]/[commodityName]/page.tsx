@@ -40,7 +40,7 @@ export default async function Page({
                         </div>
                         <ul className="ml-5">
                             {contractsSet[CFTCReportType.FinancialFutures].map((contract, idx) => (
-                                <li className="list-disc">
+                                <li key={idx} className="list-disc">
                                     <Link
                                         key={idx}
                                         className="text-blue-500 hover:text-blue-700"
@@ -51,7 +51,7 @@ export default async function Page({
                                 </li>
                             ))}
                             {contractsSet[CFTCReportType.Disaggregated].map((contract, idx) => (
-                                <li className="list-disc">
+                                <li key={idx} className="list-disc">
                                     <Link
                                         key={idx}
                                         className="text-blue-500 hover:text-blue-700"
@@ -62,7 +62,7 @@ export default async function Page({
                                 </li>
                             ))}
                             {contractsSet[CFTCReportType.Legacy].map((contract, idx) => (
-                                <li className="list-disc">
+                                <li key={idx} className="list-disc">
                                     <Link
                                         key={idx}
                                         className="text-blue-500 hover:text-blue-700"
