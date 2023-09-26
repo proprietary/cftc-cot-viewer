@@ -92,7 +92,10 @@ export default function CommitmentChangesChart({
             },
             title: {
                 show: true,
-                text: dataFrame.length > 0 ? dataFrame.at(0)!.commodity_name : '',
+                text: dataFrame.length > 0 ? dataFrame.at(0)!.contract_market_name : '',
+                textStyle: {
+                    fontSize: 10,
+                },
             },
             tooltip: {
                 trigger: 'axis',
@@ -122,7 +125,7 @@ export default function CommitmentChangesChart({
                 },
                 gridIndex: idx,
             })),
-            yAxis: cols.map(({name}, idx) => ({
+            yAxis: cols.map(({ name }, idx) => ({
                 type: 'value',
                 gridIndex: idx,
                 name,
@@ -144,7 +147,7 @@ export default function CommitmentChangesChart({
     }, [cols, dataFrame, nWeeksDelta, posnMethod]);
 
     // compute breakpoints for the ECharts instance; making it responsive
-    const {eChartsHeight, eChartsWidth} = useLargeChartDimensions();
+    const { eChartsHeight, eChartsWidth } = useLargeChartDimensions();
 
     const handleOptionChange = React.useCallback((ev: React.ChangeEvent<HTMLInputElement>) => {
         setPosnMethod(ev.target.value as PositioningAggregationMethod);
@@ -155,14 +158,19 @@ export default function CommitmentChangesChart({
     const optTypes = [PositioningAggregationMethod.Net, PositioningAggregationMethod.Longs, PositioningAggregationMethod.Shorts];
     return (
         <div className="my-2">
-            <div className="block">
-                <input type="range" min={1} max={50} step={1} value={nWeeksDelta} onChange={(ev) => { setNWeeksDelta(parseInt(ev.target.value)); }} />
-                {nWeeksDelta}
+            <div className="flex items-center">
+                <label className="w-full flex flex-col">
+                    <div>
+                        Change in position vs. <strong>{nWeeksDelta}</strong> weeks ago:
+                        <strong className="pl-2">{nWeeksDelta} Δ</strong>
+                    </div>
+                    <input className="py-3" type="range" min={1} max={50} step={1} value={nWeeksDelta} onChange={(ev) => { setNWeeksDelta(parseInt(ev.target.value)); }} />
+                </label>
             </div>
-            <div className="block">
+            <div className="flex items-center">
                 {optTypes.map((option, idx) => {
                     return (
-                        <label className="inline-flex items-center space-x-2 cursor-pointer" key={idx}>
+                        <label className="inline-flex items-center space-x-2 cursor-pointer px-3" key={idx}>
                             <input
                                 type="radio"
                                 name="radioGroup"
@@ -170,7 +178,7 @@ export default function CommitmentChangesChart({
                                 checked={posnMethod === option}
                                 onChange={handleOptionChange}
                                 className="form-radio h-4 w-4" />
-                            <span className="text-gray-700">{option}</span>
+                            <span>{option}</span>
                         </label>
                     );
                 })}

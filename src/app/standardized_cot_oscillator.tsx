@@ -300,53 +300,55 @@ export default function StandardizedCotOscillator(
 
     return (
         <div className="w-full">
-            <div className="m-2">
-                <label>
-                    Robust Scaler
+            <div className="m-2 flex items-center space-x-4">
+                <label className="flex items-center space-x-2">
                     <input type="radio" value={NormalizationMethod.RobustScaler}
                         checked={normalizationMethod === NormalizationMethod.RobustScaler}
                         onChange={handleSetNormalizationMethod}
                     />
+                    <span>Robust Scaler</span>
                 </label>
-                <label>
-                    Z-score
+                <label className="flex items-center space-x-2">
                     <input type="radio" value={NormalizationMethod.StandardZscore}
                         checked={normalizationMethod === NormalizationMethod.StandardZscore}
                         onChange={handleSetNormalizationMethod}
                     />
+                    <span>Z-score</span>
                 </label>
-                <label>
-                    Min-Max Scaler
+                <label className="flex items-center space-x-2">
                     <input type="radio" value={NormalizationMethod.MinMaxScaler}
                         checked={normalizationMethod === NormalizationMethod.MinMaxScaler}
                         onChange={handleSetNormalizationMethod}
                     />
+                    <span>Min-Max Scaler</span>
                 </label>
-                <label>
-                    Percentiles
+                <label className="flex items-center space-x-2">
                     <input type="radio" value={NormalizationMethod.QuantileTransformer}
                         checked={normalizationMethod === NormalizationMethod.QuantileTransformer}
                         onChange={handleSetNormalizationMethod}
                     />
+                    <span>Percentiles</span>
                 </label>
-                <label>
-                    None (view raw data without preprocessing)
+                <label className="flex items-center space-x-2">
                     <input type="radio" value={NormalizationMethod.None}
                         checked={normalizationMethod === NormalizationMethod.None}
                         onChange={handleSetNormalizationMethod}
                     />
+                    <span>Raw (no normalization)</span>
                 </label>
             </div>
 
-            <div className="my-1">
-                <label>
-                    Lookback (number of weeks to use to standardize positioning):
-                    <strong>
-                        {lookback}
-                    </strong>
+            <div className="m-2 flex items-center">
+                <label className="flex flex-col w-full">
+                    <div>
+                        Lookback number of weeks for normalization
+                        <strong className="px-2">
+                            {lookback}
+                        </strong>
+                    </div>
                     <input
                         type="range"
-                        className="mx-2"
+                        className="py-3"
                         min={2} max={100} step={1}
                         onChange={handleChangeZsLookback} />
                 </label>

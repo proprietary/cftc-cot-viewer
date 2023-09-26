@@ -72,34 +72,38 @@ export default function OpenInterestChangesNormalizedChart({
     const [xAxisDates, yAxisColumns] = generateColumns();
     return (
         <div className="my-2">
-            <div className="block">
-                <label>
-                    Weeks lookback Δ
-                    <input type="range" min={1} max={50} step={1}
+            <div className="flex items-center">
+                <label className="inline-flex items-center space-x-2 cursor-pointer px-3">
+                    <input
+                        className="h-4 w-4"
+                        type="radio"
+                        value={PositioningAggregationType.Net}
+                        checked={aggregationType === PositioningAggregationType.Net}
+                        onChange={handleChangeAggregationType} />
+                    <div>Net</div>
+                </label>
+                <label className="inline-flex items-center space-x-2 cursor-pointer px-3">
+                    <input className="h-4 w-4" type="radio" value={PositioningAggregationType.Longs}
+                        checked={aggregationType === PositioningAggregationType.Longs}
+                        onChange={handleChangeAggregationType} />
+                    <div>Longs</div>
+                </label>
+                <label className="inline-flex items-center space-x-2 cursor-pointer px-3">
+                    <input className="h-4 w-4" type="radio" value={PositioningAggregationType.Shorts}
+                        checked={aggregationType === PositioningAggregationType.Shorts}
+                        onChange={handleChangeAggregationType} />
+                    <div>Shorts</div>
+                </label>
+            </div>
+            
+            <div className="flex items-center my-3">
+                <label className="w-full inline-flex items-center space-x-3">
+                    <div>Change in position vs. <strong>{weeksLookback}Δ</strong> weeks ago: </div>
+                    <input type="range" className="w-1/4" min={1} max={50} step={1}
                         value={weeksLookback} onChange={handleChangeWeeksLookback} />
-                    {weeksLookback}
                 </label>
             </div>
-            <div className="block">
-                <label>
-                    Net
-                    <input type="radio" value={PositioningAggregationType.Net}
-                    checked={aggregationType === PositioningAggregationType.Net}
-                    onChange={handleChangeAggregationType} />
-                </label>
-                <label>
-                    Longs
-                    <input type="radio" value={PositioningAggregationType.Longs}
-                    checked={aggregationType === PositioningAggregationType.Longs}
-                    onChange={handleChangeAggregationType} />
-                </label>
-                <label>
-                    Shorts
-                    <input type="radio" value={PositioningAggregationType.Shorts}
-                    checked={aggregationType === PositioningAggregationType.Shorts}
-                    onChange={handleChangeAggregationType} />
-                </label>
-            </div>
+
             <StandardizedCotOscillator
                 yAxisLabel='Changes in Open Interest'
                 xAxisDates={xAxisDates}
