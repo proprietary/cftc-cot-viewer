@@ -101,6 +101,13 @@ export function rollingZscore(a: Array<number>, lookback: number): Array<number>
     return rollingZscore_(newArrSlice(a), lookback);
 }
 
+export function zscore(a: ArrSlice<number>): number {
+    let avg = mean(a);
+    let std = stdDev(a);
+    let result = (a.arr[a.endIndex - 1] - avg) / std;
+    return result;
+}
+
 function stdDev(a: ArrSlice<number>): number {
     const a_mean = mean(a);
     const len = a.endIndex - a.startIndex;
@@ -295,7 +302,7 @@ function quantileTransform(a: ArrSlice<number>, scaleLow: number = -1.0, scaleHi
     return transformed;
 }
 
-function quantileTransformAt(a: ArrSlice<number>, atIndex: number, scaleLow: number = -1.0, scaleHigh: number = 1.0): number {
+export function quantileTransformAt(a: ArrSlice<number>, atIndex: number, scaleLow: number = -1.0, scaleHigh: number = 1.0): number {
     const ranked = a.arr
         .slice(a.startIndex, a.endIndex)
         .map((value, originalIndex) => ([value, originalIndex]))

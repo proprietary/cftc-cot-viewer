@@ -2,6 +2,9 @@
 
 import React from 'react';
 import { IAnyCOTReportType, IFinancialFuturesCOTReport, IDisaggregatedFuturesCOTReport, ILegacyFuturesCOTReport } from '@/socrata_cot_report';
+import { formatDateYYYYMMDD } from '@/util';
+import { quantileTransformAt, zscore } from '@/chart_math';
+import { ArrSlice, newArrSlice } from '@/arr_slice';
 
 type FilteredCOTReport<T extends IFinancialFuturesCOTReport | IDisaggregatedFuturesCOTReport | ILegacyFuturesCOTReport> = {
     [K in keyof T]: T[K] extends number ? K : never;
@@ -38,18 +41,18 @@ export default function TabularCOTViewer<T extends IFinancialFuturesCOTReport | 
         // update `currentReportsIdx` when `reports` updates
         setReportsIdx(reports.length - 1);
     }, [reports]);
-    const navNextPage = React.useCallback((ev: any) => {
+    const navNextPage = (ev: any) => {
         ev.preventDefault();
         setReportsIdx(prevReportsIdx => Math.min(reports.length - 1, prevReportsIdx + 1));
-    }, [reports, currentReportsIdx]);
-    const navPrevPage = React.useCallback((ev: any) => {
+    };
+    const navPrevPage = (ev: any) => {
         ev.preventDefault();
         setReportsIdx(prevReportsIdx => Math.max(0, prevReportsIdx - 1));
-    }, [reports, currentReportsIdx]);
-    const handleChangeDropdownDate = React.useCallback((ev: any) => {
+    };
+    const handleChangeDropdownDate = (ev: any) => {
         const val: any = ev.target.value;
         setReportsIdx(val);
-    }, [reports, currentReportsIdx]);
+    };
     const report = reports.at(currentReportsIdx);
     return (
         <div className="overflow-x-auto mx-auto">
@@ -58,7 +61,7 @@ export default function TabularCOTViewer<T extends IFinancialFuturesCOTReport | 
                     Report Date
                     <select value={currentReportsIdx} onChange={handleChangeDropdownDate} className="bg-slate-900 text-white w-1/4 rounded-md m-2 text-lg">
                         {reports.map((report, idx) => (
-                            <option key={idx} value={idx}>{new Date(report.timestamp).toLocaleDateString()}</option>
+                            <option key={idx} value={idx}>{formatDateYYYYMMDD(new Date(report.timestamp))}</option>
                         ))}
                     </select>
                 </label>
@@ -68,9 +71,9 @@ export default function TabularCOTViewer<T extends IFinancialFuturesCOTReport | 
                 <button disabled={currentReportsIdx >= reports.length - 1} onClick={navNextPage}>Next</button>
             </nav>
             <div>
-                <table>
+                <table className="table-auto">
                     <caption>
-                        {reports.at(currentReportsIdx)?.market_and_exchange_names} week ending {new Date(report?.timestamp ?? new Date().getTime()).toLocaleDateString()} - Net Positions
+                        {reports.at(currentReportsIdx)?.market_and_exchange_names} week ending {formatDateYYYYMMDD(new Date(report?.timestamp ?? new Date().getTime()))} - Net Positions
                     </caption>
                     <thead>
                         <tr>
@@ -97,8 +100,18 @@ export default function TabularCOTViewer<T extends IFinancialFuturesCOTReport | 
                                 </abbr>
                             </th>
                             <th>
+                                <abbr title="Pecentile of current net positioning with respect to the last 2 years">
+                                    2Y %ile
+                                </abbr>
+                            </th>
+                            <th>
                                 <abbr title="Z-score of the current net positioning with respect to the last 1 year">
                                     1Y z-score
+                                </abbr>
+                            </th>
+                            <th>
+                                <abbr title="Z-score of the current net positioning with respect to the last 2 year">
+                                    2Y z-score
                                 </abbr>
                             </th>
                         </tr>
@@ -120,18 +133,43 @@ export default function TabularCOTViewer<T extends IFinancialFuturesCOTReport | 
                                     <td className="font-mono text-right">
                                         {fmtThousandsSeparators((reports.at(currentReportsIdx - 4)?.[column.longs] as number ?? 0) - (reports.at(currentReportsIdx - 4)?.[column.shorts] as number ?? 0))}
                                     </td>
-                                    <td>3mop</td>
-                                    <td>1yp</td>
-                                    <td>1yz</td>
+                                    <td className="font-mono text-right">
+                                        {((): string => {
+                                            const pastYear = newArrSlice(reports.slice(Math.max(0, currentReportsIdx - 12)).map(x => (x[column.longs] as number) - (x[column.shorts] as number)));
+                                            const result = 100. * quantileTransformAt(pastYear, pastYear.arr.length - 1, 0., 1.);
+                                            return `${result.toFixed(0)}%`;
+                                        })()}
+                                    </td>
+                                    <td className="font-mono text-right">
+                                        {((): string => {
+                                            const pastYear = newArrSlice(reports.slice(Math.max(0, currentReportsIdx - 52)).map(x => (x[column.longs] as number) - (x[column.shorts] as number)));
+                                            const result = 100. * quantileTransformAt(pastYear, pastYear.arr.length - 1, 0., 1.);
+                                            return `${result.toFixed(0)}%`;
+                                        })()}
+
+                                    </td>
+                                    <td className="font-mono text-right">
+                                        {((): string => {
+                                            const pastYear = newArrSlice(reports.slice(Math.max(0, currentReportsIdx - 104)).map(x => (x[column.longs] as number) - (x[column.shorts] as number)));
+                                            const result = 100. * quantileTransformAt(pastYear, pastYear.arr.length - 1, 0., 1.);
+                                            return `${result.toFixed(0)}%`;
+                                        })()}
+                                    </td>
+                                    <td className="font-mono text-right">
+                                        {zscore(newArrSlice(reports.slice(Math.max(0, currentReportsIdx - 52)).map(x => (x[column.longs] as number) - (x[column.shorts] as number)))).toFixed(3)}σ
+                                    </td>
+                                    <td className="font-mono text-right">
+                                        {zscore(newArrSlice(reports.slice(Math.max(0, currentReportsIdx - 104)).map(x => (x[column.longs] as number) - (x[column.shorts] as number)))).toFixed(3)}σ
+                                    </td>
 
                                 </tr>
                             );
                         })}
                     </tbody>
                 </table>
-                <table className="table-fixed caption-top border-collapse min-w-full">
+                <table className="table-auto caption-top border-collapse min-w-full">
                     <caption>
-                        {reports.at(currentReportsIdx)?.market_and_exchange_names} - week ending {new Date(reports.at(currentReportsIdx)?.timestamp ?? 0).toLocaleDateString()} - Full Report
+                        {reports.at(currentReportsIdx)?.market_and_exchange_names} - week ending {formatDateYYYYMMDD(new Date(reports.at(currentReportsIdx)?.timestamp ?? 0))} - Full Report
                     </caption>
                     <thead>
                         <tr>
