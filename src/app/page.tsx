@@ -1,17 +1,67 @@
-import Image from 'next/image'
+import Link from "next/link"
 
 export default function Home() {
   return (
-    <main className="flex min-h-screen flex-col items-center justify-between p-24">
-      <h1>CFTC Commitment of Traders Viewer</h1>
-      <section>
-        <h2>What is the Commitment of Traders report?</h2>
+    <main className="flex min-h-screen flex-col items-center justify-between w-11/12 mx-auto sm:w-3/4">
+      <h1 className="text-3xl antialiased py-10">Commitment of Traders Viewer</h1>
+      <section className="my-15">
         <article>
-          The CFTC provides a report every week informing the public of positioning in futures markets.
+          <h2 className="text-2xl antialiased py-2">Get started</h2>
+          <div>
+            <p>
+              View common futures:
+            </p>
+            <div className="space-x-5 flex-inline">
+              <Link
+                className="text-blue-500 hover:text-blue-700"
+                href={"/futures/financial-instruments/stock-indices/s%26p-broad-based-stock-indices/13874A/traders-in-financial-futures"}
+              >
+                S&P 500
+              </Link>
+              <Link
+                className="text-blue-500 hover:text-blue-700"
+                href={"/futures/financial-instruments/stock-indices/nasdaq--broadbased-indices/209742/traders-in-financial-futures"}
+              >
+                Nasdaq-100
+              </Link>
+              <Link
+                className="text-blue-500 hover:text-blue-700"
+                href={"/futures/natural-resources/petroleum-and-products/crude-oil/067651/disaggregated"}
+              >
+                Crude Oil
+              </Link>
+            </div>
+          </div>
+          <div className="pt-5">
+            <div className="pb-5">Or explore all the various categories (we have <em>everything</em> the CFTC collects reports on)…</div>
+            <ul className="space-y-5 flex flex-col ml-3 text-lg">
+              <li><Link className="text-blue-500 hover:text-blue-700" href={"/futures/financial-instruments"}>Financial (stock indices, bonds, currencies)</Link></li>
+              <li><Link className="text-blue-500 hover:text-blue-700" href={"/futures/agriculture"}>Agriculture (softs, grains)</Link></li>
+              <li><Link className="text-blue-500 hover:text-blue-700" href={"/futures/natural-resources"}>Natural Resources (energy, materials)</Link></li>
+            </ul>
+          </div>
+        </article>
+      </section>
+      <section>
+        <article className="hyphens-auto break-words leading-9 my-20">
+          <h2 className="text-xl antialiased py-2">What is the Commitment of Traders report? 📊</h2>
+          <p className="my-2">The CFTC provides a report every week informing the public of positioning in futures markets.</p>
 
-          The Commitment of Traders (COT) report is a weekly publication by the Commodity Futures Trading Commission (CFTC) that provides a breakdown of open interest for markets in which 20 or more traders hold positions equal to or above the reporting levels established by the CFTC 1. The report is released every Friday at 3 pm CT and provides a comprehensive and highly configurable graphical representation of the CFTC’s report on market open interest based on open positions as of the preceding Tuesday 2. The report is available with both the Disaggregated and Financial Traders Reports 1. The Disaggregated Report provides a detailed breakdown of the reportable open interest positions held by commercial traders, non-commercial traders, and non-reportable traders 1. The Financial Traders Report provides information on the open interest of financial institutions that are not included in the other categories 1.
+          <p className="my-3">
+            Ever wondered how the big players in the financial markets are moving their chips around the table? Well, that's where the CFTC Commitment of Traders (COT) Report comes into play.
+          </p>
 
-          The report is used by traders to identify trends and potential price movements in the futures markets. It can also be used to identify potential market manipulation by large traders 3. The report is an important tool for traders who want to stay informed about market trends and make informed trading decisions.
+          <p className="my-3">
+            Imagine peeking behind the curtain of the market to see who's making the big bets and why. That's exactly what the CFTC COT Report does (well, kind of). CFTC stands for the Commodity Futures Trading Commission, the watchdogs of the financial markets in the U.S.
+          </p>
+
+          <p className="my-3">
+            This report is like a weekly snapshot that shows us who's doing what in the world of financial futures (which are like bets on the future prices of stuff like stocks, commodities, and more). It helps us understand what the big financial institutions, traders, and even small investors are up to.
+          </p>
+
+          <p className="my-3">
+            Learn more about the Commitment of Traders reports from <a className="text-blue-500 hover:text-blue-700" href="https://www.cftc.gov/MarketReports/CommitmentsofTraders/index.htm" target="_blank" rel="nofollow">the CFTC's website</a>. In particular, to learn about the different types of reports, check these links: <a className="text-blue-500 hover:text-blue-700" href="https://www.cftc.gov/idc/groups/public/@commitmentsoftraders/documents/file/disaggregatedcotexplanatorynot.pdf" target="_blank" rel="nofollow">Disaggregated</a>, <a className="text-blue-500 hover:text-blue-700" href="https://www.cftc.gov/idc/groups/public/@commitmentsoftraders/documents/file/tfmexplanatorynotes.pdf" target="_blank" rel="nofollow">Traders in Financial Futures</a>. The "Legacy" report refers to a style of report which only separates traders into three groups: Commercials, Non-Commercials, and Non-Reportables. Commercials are companies that participate in the futures market as a matter of business, e.g., as a farmer hedging his crops. Non-Commercials are speculators like hedge funds. Non-Reportables are small size traders who do not have to report positioning to the CFTC; these are typically retail traders. Traders in Financial Futures or Disaggreagted reports have more graular categories than the simple 3 categories in the Legacy reports.
+          </p>
         </article>
       </section>
     </main>
