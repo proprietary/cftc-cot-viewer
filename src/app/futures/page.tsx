@@ -10,7 +10,7 @@ export default async function Page() {
     return (
         <div className="flex flex-col min-h-screen mx-auto w-11/12">
 
-            <Breadcrumbs />
+            <Breadcrumbs params={{}} />
 
             <h1 className="text-2xl antialiased my-5">Futures</h1>
             {contractsTree.getGroupNames().map((commodityGroupName, idx) => {

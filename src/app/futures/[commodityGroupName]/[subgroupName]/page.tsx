@@ -15,13 +15,6 @@ export default async function Page({
     const contractsTree = await FetchAllAvailableContracts();
     const commodityGroupNameSlug = decodeURIComponent(params.commodityGroupName);
     const subgroupNameSlug = decodeURIComponent(params.subgroupName);
-    const commodities = contractsTree.getCommodityNames(commodityGroupNameSlug, subgroupNameSlug);
-    const commodContracts = contractsTree.getCommods(commodityGroupNameSlug, subgroupNameSlug)
-        .reduce((acc, val) => {
-            const n = allCapsToSlug(val.commodityName);
-            if (!acc.has(n)) acc.set(n, val);
-            return acc;
-        }, new Map<string, CommodityContractKind>());
     let c = contractsTree.select(
         {
             commoditySubgroupName: subgroupNameSlug,
@@ -53,13 +46,12 @@ export default async function Page({
     return (
         <div className="flex min-h-screen flex-col mx-auto w-11/12">
             <Breadcrumbs
-                commodityGroupNameSlug={commodityGroupNameSlug}
-                subgroupNameSlug={subgroupNameSlug}
+                params={params}
             />
             {commodContracts2.map(([commodityName, contracts], idx) => (
                 <div key={idx} className="my-4">
                     <Link
-                        href={`/futures/${commodityGroupNameSlug}/${subgroupNameSlug}/${allCapsToSlug(commodityName as string)}`}
+                        href={`/futures/${params.commodityGroupName}/${params.subgroupName}/${allCapsToSlug(commodityName as string)}`}
                     >
                         <span className="font-bold text-lg">{commodityName}</span>
                     </Link>
@@ -77,7 +69,7 @@ export default async function Page({
                                 {contract[CFTCReportType.FinancialFutures] != null && (
                                     <Link
                                         className="px-2 text-blue-700 hover:text-blue-500"
-                                        href={`/futures/${commodityGroupNameSlug}/${subgroupNameSlug}/${allCapsToSlug(commodityName as string)}/${contract[CFTCReportType.FinancialFutures].cftcContractMarketCode}/traders-in-financial-futures`}
+                                        href={`/futures/${params.commodityGroupName}/${params.subgroupName}/${encodeURIComponent(allCapsToSlug(commodityName as string))}/${contract[CFTCReportType.FinancialFutures].cftcContractMarketCode}/traders-in-financial-futures`}
                                     >
                                         Traders in Financial Futures
                                     </Link>
@@ -85,7 +77,7 @@ export default async function Page({
                                 {contract[CFTCReportType.Disaggregated] != null && (
                                     <Link
                                         className="px-2 text-blue-700 hover:text-blue-500"
-                                        href={`/futures/${commodityGroupNameSlug}/${subgroupNameSlug}/${allCapsToSlug(commodityName as string)}/${contract[CFTCReportType.Disaggregated].cftcContractMarketCode}/disaggregated`}
+                                        href={`/futures/${params.commodityGroupName}/${params.subgroupName}/${encodeURIComponent(allCapsToSlug(commodityName as string))}/${contract[CFTCReportType.Disaggregated].cftcContractMarketCode}/disaggregated`}
                                     >
                                         Disaggregated
                                     </Link>
@@ -93,7 +85,7 @@ export default async function Page({
                                 {contract[CFTCReportType.Legacy] != null && (
                                     <Link
                                         className="px-2 text-blue-700 hover:text-blue-500"
-                                        href={`/futures/${commodityGroupNameSlug}/${subgroupNameSlug}/${allCapsToSlug(commodityName as string)}/${contract[CFTCReportType.Legacy].cftcContractMarketCode}/legacy`}
+                                        href={`/futures/${params.commodityGroupName}/${params.subgroupName}/${encodeURIComponent(allCapsToSlug(commodityName as string))}/${contract[CFTCReportType.Legacy].cftcContractMarketCode}/legacy`}
                                     >
                                         Legacy
                                     </Link>
@@ -119,6 +111,6 @@ export async function generateStaticParams({
 }) {
     const contractsTree = await FetchAllAvailableContracts();
     return contractsTree.getSubgroupNames(params.commodityGroupName).map((subgroupName) => ({
-        subgroupName,
+        subgroupName: encodeURIComponent(subgroupName),
     }))
 }

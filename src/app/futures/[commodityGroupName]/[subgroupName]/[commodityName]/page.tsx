@@ -24,9 +24,7 @@ export default async function Page({
     return (
         <div className="flex flex-col min-h-screen w-11/12 mx-auto">
             <Breadcrumbs
-                commodityGroupNameSlug={commodityGroupNameSlug}
-                subgroupNameSlug={commoditySubgroupNameSlug}
-                commodityNameSlug={commodityNameSlug}
+                params={params}
             />
 
             <h3 className="text-2xl antialiased font-bold my-10">
@@ -93,6 +91,6 @@ export async function generateStaticParams({
     const subgroupName = decodeURIComponent(params.subgroupName);
     const contractsTree = await FetchAllAvailableContracts();
     return contractsTree.getCommodityNames(commodityGroupName, subgroupName).map((commodityName) => ({
-        commodityName,
+        commodityName: encodeURIComponent(commodityName),
     }));
 }

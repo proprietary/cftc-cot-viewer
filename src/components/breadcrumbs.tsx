@@ -1,18 +1,18 @@
 import Link from 'next/link';
 import { slugToTitle } from '@/lib/cftc_api_utils';
 
+export interface COTURLParams {
+    commodityGroupName?: string,
+    subgroupName?: string,
+    commodityName?: string,
+    cftcCode?: string,
+}
 
 export default function Breadcrumbs({
-    commodityGroupNameSlug,
-    subgroupNameSlug,
-    commodityNameSlug,
-    cftcCode,
+    params,
     reportType,
 }: {
-    commodityGroupNameSlug?: string,
-    subgroupNameSlug?: string,
-    commodityNameSlug?: string,
-    cftcCode?: string,
+    params: COTURLParams,
     reportType?: string,
 }) {
     return (
@@ -38,10 +38,10 @@ export default function Breadcrumbs({
                         </svg>
                     </div>
                 </li>
-                {commodityGroupNameSlug != null && (
+                {params.commodityGroupName != null && (
                     <li className="flex items-center px-2 text-sm text-blue-500 hover:text-blue-700 last-of-type:text-gray-500">
-                        <Link href={`/futures/${commodityGroupNameSlug}`}>
-                            {slugToTitle(commodityGroupNameSlug)}
+                        <Link href={`/futures/${params.commodityGroupName}`}>
+                            {slugToTitle(decodeURIComponent(params.commodityGroupName))}
                         </Link>
                         <div className="pl-2">
                             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" className="bi bi-caret-right-fill" viewBox="0 0 16 16">
@@ -50,10 +50,10 @@ export default function Breadcrumbs({
                         </div>
                     </li>
                 )}
-                {subgroupNameSlug != null && (
+                {params.subgroupName != null && (
                     <li className="flex items-center px-2 text-sm text-blue-500 hover:text-blue-700 last-of-type:text-gray-500">
-                        <Link href={`/futures/${commodityGroupNameSlug}/${subgroupNameSlug}`}>
-                            {slugToTitle(subgroupNameSlug)}
+                        <Link href={`/futures/${params.commodityGroupName}/${params.subgroupName}`}>
+                            {slugToTitle(decodeURIComponent(params.subgroupName))}
                         </Link>
                         <div className="pl-2">
                             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" className="bi bi-caret-right-fill" viewBox="0 0 16 16">
@@ -62,10 +62,10 @@ export default function Breadcrumbs({
                         </div>
                     </li>
                 )}
-                {commodityNameSlug != null && (
+                {params.commodityName != null && (
                     <li className="flex items-center px-2 text-sm text-blue-500 hover:text-blue-700 last-of-type:text-gray-500">
-                        <Link href={`/futures/${commodityGroupNameSlug}/${subgroupNameSlug}/${commodityNameSlug}`}>
-                            {slugToTitle(commodityNameSlug)}
+                        <Link href={`/futures/${params.commodityGroupName}/${params.subgroupName}/${params.commodityName}`}>
+                            {slugToTitle(decodeURIComponent(params.commodityName))}
                         </Link>
                         <div className="pl-2">
                             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" className="bi bi-caret-right-fill" viewBox="0 0 16 16">
@@ -74,10 +74,10 @@ export default function Breadcrumbs({
                         </div>
                     </li>
                 )}
-                {cftcCode != null && (
+                {params.cftcCode != null && (
                     <li className="flex items-center px-2 text-sm text-blue-500 hover:text-blue-700 last-of-type:text-gray-500">
-                        <Link href={`/futures/${commodityGroupNameSlug}/${subgroupNameSlug}/${commodityNameSlug}/${cftcCode}`}>
-                            CFTC Contract #{cftcCode}
+                        <Link href={`/futures/${params.commodityGroupName}/${params.subgroupName}/${params.commodityName}/${params.cftcCode}`}>
+                            CFTC Contract #{params.cftcCode}
                         </Link>
                         <div className="pl-2">
                             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" className="bi bi-caret-right-fill" viewBox="0 0 16 16">

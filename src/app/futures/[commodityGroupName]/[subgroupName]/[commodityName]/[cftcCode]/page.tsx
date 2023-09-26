@@ -24,10 +24,7 @@ export default async function Page({
     return (
         <div className="flex min-h-screen flex-col mx-auto w-11/12">
             <Breadcrumbs
-                commodityGroupNameSlug={commodityGroupNameSlug}
-                subgroupNameSlug={subgroupNameSlug}
-                commodityNameSlug={commodityNameSlug}
-                cftcCode={cftcCode}
+                params={params}
             />
             <div>
                 <div>

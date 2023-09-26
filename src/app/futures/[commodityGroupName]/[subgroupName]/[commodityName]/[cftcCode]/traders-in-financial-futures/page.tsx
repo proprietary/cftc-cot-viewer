@@ -31,10 +31,7 @@ export default async function Page({
     return (
         <div className="min-h-screen">
             <Breadcrumbs
-                commodityGroupNameSlug={commodityGroupNameSlug}
-                subgroupNameSlug={subgroupNameSlug}
-                commodityNameSlug={commodityNameSlug}
-                cftcCode={cftcCode}
+                params={params}
                 reportType={"Traders in Financial Futures"}
             />
             {contract && (<Tff contract={contract} />)}
