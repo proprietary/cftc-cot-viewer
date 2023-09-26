@@ -425,6 +425,76 @@ export const CommodityCodes: ICommodityCodes = {
             ],
         },
     ],
+    '033': [
+        {
+            name: 'Cotton',
+            cftcCommodityCode: '033',
+            priceFeeds: [
+                {
+                    source: 'FRED',
+                    name: 'Global price of cotton',
+                    symbol: 'PCOTTINDUSDM',
+                    transforms: [],
+                },
+            ],
+        },
+    ],
+    '040': [
+        {
+            name: 'Orange Juice, Frozen Concentrate',
+            cftcCommodityCode: '040',
+            priceFeeds: [
+                {
+                    source: 'FRED',
+                    name: 'Orange Juice, Frozen Concentrate, 12 Ounce Can',
+                    symbol: 'APU0000713111',
+                    transforms: [],
+                },
+            ],
+        },
+    ],
+    '052': [
+        {
+            name: 'Milk',
+            cftcCommodityCode: '052',
+            priceFeeds: [
+                {
+                    source: 'FRED',
+                    name: 'Milk cost per gallon in the U.S.',
+                    symbol: 'APU0000709112',
+                    transforms: [],
+                },
+            ],
+        },
+    ],
+    '054': [
+        {
+            name: 'Lean Hogs',
+            cftcCommodityCode: '054',
+            priceFeeds: [
+                {
+                    source: 'FRED',
+                    name: 'Global price of Swine',
+                    symbol: 'PPORKUSDM',
+                    transforms: [],
+                },
+            ],
+        },
+    ],
+    '073': [
+        {
+            name: 'Cocoa',
+            cftcCommodityCode: '073',
+            priceFeeds: [
+                {
+                    source: 'FRED',
+                    name: 'Global price of Cocoa',
+                    symbol: 'PCOCOUSDM',
+                    transforms: [],
+                },
+            ],
+        },
+    ],
 };
 
 function fredTreasuryYield(priceBars: PriceBar[]) {
