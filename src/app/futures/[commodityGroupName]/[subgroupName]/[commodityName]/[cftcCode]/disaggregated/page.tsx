@@ -21,7 +21,7 @@ export default async function Page({
         <div className="min-h-screen">
             <Breadcrumbs
                 params={params}
-                reportType={"legacy"}
+                reportType={"Disaggregated"}
             />
             {contract && (<Disaggregated contract={contract} />)}
         </div>

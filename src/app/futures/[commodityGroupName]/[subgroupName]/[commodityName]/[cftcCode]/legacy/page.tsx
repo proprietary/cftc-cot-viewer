@@ -27,7 +27,7 @@ export default async function Page({
         <div className="min-h-screen">
             <Breadcrumbs
                 params={params}
-                reportType={"legacy"}
+                reportType={"Legacy"}
             />
             {contract && (<Legacy contract={contract} />)}
         </div>

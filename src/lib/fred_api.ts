@@ -1,5 +1,5 @@
 import { PriceBar } from '../common_types';
-import { formatDateYYYYMMDD } from '../util';
+import { formatDateYYYYMMDD, parseYYYYMMDD } from '../util';
 
 interface FredObservation {
     date: string,
@@ -7,6 +7,7 @@ interface FredObservation {
 }
 
 export async function requestFredObservations(seriesId: string, until: Date = new Date()): Promise<PriceBar[]> {
+    // const untilPlusOneDay = new Date(until.setUTCDate(until.getUTCDate() + 1));
     let params = new URLSearchParams({
         'series_id': seriesId,
         'observation_end': formatDateYYYYMMDD(until),
@@ -33,7 +34,7 @@ export async function requestFredObservations(seriesId: string, until: Date = ne
             }
         }
         return {
-            timestamp: new Date(Date.parse(o.date)),
+            timestamp: parseYYYYMMDD(o.date),
             close,
         };
     });

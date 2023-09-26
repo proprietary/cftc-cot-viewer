@@ -163,3 +163,9 @@ export const usePrevious = <T extends unknown>(value: T): T | undefined => {
     });
     return ref.current;
 };
+
+/// Parses date string like 2023-09-01 to `Date`
+export function parseYYYYMMDD(yyyyMMDD: string): Date {
+    let [ year, mm, dd ] = yyyyMMDD.split('-').map(x => parseInt(x));
+    return new Date(year, mm, dd);
+}
