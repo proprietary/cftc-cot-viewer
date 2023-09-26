@@ -14,3 +14,4 @@ Features
 
 - [ ] Implement a service worker.
 - [ ] Show details and links etc. along with each commodity.
+- [ ] Testing using React Testing Library and Jest

@@ -1,5 +1,5 @@
 import { ArrSlice, checkArrSliceBounds, newArrSlice } from './arr_slice';
-import { LHAssert } from './util';
+import { LHAssert } from '../util';
 
 // A moving average that starts from the beginning of the array.
 // invariant: dst.length == a.arr.length

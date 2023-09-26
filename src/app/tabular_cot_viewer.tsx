@@ -3,8 +3,8 @@
 import React from 'react';
 import { IAnyCOTReportType, IFinancialFuturesCOTReport, IDisaggregatedFuturesCOTReport, ILegacyFuturesCOTReport } from '@/socrata_cot_report';
 import { formatDateYYYYMMDD } from '@/util';
-import { quantileTransformAt, zscore } from '@/chart_math';
-import { ArrSlice, newArrSlice } from '@/arr_slice';
+import { quantileTransformAt, zscore } from '@/lib/chart_math';
+import { ArrSlice, newArrSlice } from '@/lib/arr_slice';
 import { interpolateColor } from '@/lib/interpolate_color';
 
 type FilteredCOTReport<T extends IFinancialFuturesCOTReport | IDisaggregatedFuturesCOTReport | ILegacyFuturesCOTReport> = {

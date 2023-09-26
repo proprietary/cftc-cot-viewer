@@ -1,7 +1,7 @@
 // Creates a persistent service so components share the IndexedDB "connection"
 
 import React from 'react';
-import { CachingCFTCApi } from '@/cftc_api';
+import { CachingCFTCApi } from '@/lib/cftc_api';
 
 const CFTCApiContext = React.createContext<CachingCFTCApi | null>(null);
 

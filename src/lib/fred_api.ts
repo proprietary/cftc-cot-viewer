@@ -1,5 +1,5 @@
-import { PriceBar } from './common_types';
-import { formatDateYYYYMMDD } from './util';
+import { PriceBar } from '../common_types';
+import { formatDateYYYYMMDD } from '../util';
 
 interface FredObservation {
     date: string,

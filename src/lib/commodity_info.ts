@@ -1,7 +1,7 @@
 import { CommodityCodes } from './cftc_codes_mapping';
 import { requestFredObservations } from './fred_api';
-import { PriceBar, IPriceFeed, PriceFeedSource, CFTCCommodityCode } from './common_types';
-import { sameDay, asDay } from './util';
+import { PriceBar, IPriceFeed, PriceFeedSource, CFTCCommodityCode } from '../common_types';
+import { sameDay, asDay } from '../util';
 
 export class CommodityInfoService {
     private cache: CommodityInfoDatabase = new CommodityInfoDatabase();

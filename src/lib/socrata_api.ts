@@ -1,5 +1,5 @@
 import { IAnyCOTReportType } from "../socrata_cot_report";
-import { DateRangeRequest, ContractListRequest } from "../cftc_api";
+import { DateRangeRequest, ContractListRequest } from "./cftc_api";
 import { CFTCContractMarketCode, CFTCReportType, CFTCCommodityGroupType } from "../common_types";
 import { CommodityContractKind } from "./CommodityContractKind";
 import { ContractsTree } from "./contracts_tree";

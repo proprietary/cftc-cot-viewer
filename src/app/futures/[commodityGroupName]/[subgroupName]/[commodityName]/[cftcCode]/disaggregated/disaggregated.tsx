@@ -3,10 +3,10 @@
 import OpenInterestChangesNormalizedChart from '@/app/open_interest_changes_normalized_chart';
 import StandardizedCotOscillator from '@/app/standardized_cot_oscillator';
 import TabularCOTViewer from '@/app/tabular_cot_viewer';
-import { CachingCFTCApi } from '@/cftc_api';
-import { CommodityCodes } from '@/cftc_codes_mapping';
+import { CachingCFTCApi } from '@/lib/cftc_api';
+import { CommodityCodes, StaticCommodityInfo } from '@/lib/cftc_codes_mapping';
 import CommitmentChangesChart from '@/commitment_changes_chart';
-import { CommodityInfoService } from '@/commodity_info';
+import { CommodityInfoService } from '@/lib/commodity_info';
 import { CFTCReportType, PriceBar } from '@/common_types';
 import { CommodityContractKind } from '@/lib/CommodityContractKind';
 import LongShortOIChart from '@/long_short_oi_chart';
@@ -35,13 +35,10 @@ export default function Legacy({
             }) as IDisaggregatedFuturesCOTReport[];
             setReports(reportsResult);
 
-            if (reportsResult.at(0)?.cftc_commodity_code != null &&
-                reportsResult.at(0)?.cftc_commodity_code! in CommodityCodes &&
-                CommodityCodes[reportsResult.at(0)?.cftc_commodity_code!].priceFeeds.length > 0) {
-                const commodityCode = reportsResult.at(0)?.cftc_commodity_code!;
-                const commodityInfo = CommodityCodes[commodityCode];
-                const firstPriceFeed = commodityInfo.priceFeeds.at(0)!;
-                const bars = await (new CommodityInfoService()).requestPriceFeed(commodityCode, firstPriceFeed, reportsResult.map(x => new Date(x.timestamp)));
+            const info = StaticCommodityInfo.lookup(contract);
+            if (info && info.priceFeeds.length > 0) {
+                const firstPriceFeed = info.priceFeeds.at(0)!; // only care about the first price feed for now; change this if more data providers are added
+                const bars = await (new CommodityInfoService()).requestPriceFeed(contract.cftcCommodityCode, firstPriceFeed, reportsResult.map(x => new Date(x.timestamp)));
                 setPriceBars(bars);
             }
             setIsLoading(false);
