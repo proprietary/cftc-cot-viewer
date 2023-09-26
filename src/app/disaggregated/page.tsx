@@ -50,7 +50,7 @@ export default function Disaggregated() {
                 setLoadingDownstream(true);
                 const res = await cftcApi.requestDateRange({
                     reportType: CFTCReportType.Disaggregated,
-                    contract: { reportType: CFTCReportType.Disaggregated, cftcContractMarketCode, },
+                    cftcContractMarketCode,
                     startDate: new Date(2000, 0, 1),
                     endDate: new Date(),
                 });
@@ -109,7 +109,7 @@ export default function Disaggregated() {
                                 data: reports.map(x => x['nonrept_positions_long_all'] - x['nonrept_positions_short_all']),
                             },
                         }}
-                        xAxisDates={reports.map(x => new Date(x.timestamp))}
+                        xAxisDates={reports.map(x => new Date(x.timestamp)) as readonly string[]}
                         title={reports.length > 0 ? reports.at(0)?.contract_market_name : ''}
                         loading={loadingDownstream}
                     />
