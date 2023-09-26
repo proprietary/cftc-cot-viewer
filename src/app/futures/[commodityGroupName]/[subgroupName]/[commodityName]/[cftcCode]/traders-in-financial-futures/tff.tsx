@@ -63,6 +63,9 @@ export default function Tff({
                             tradersLong: 'traders_dealer_long_all',
                             tradersShort: 'traders_dealer_short_all',
                             tradersSpreading: 'traders_dealer_spread_all',
+                            changeInLongs: 'change_in_dealer_long_all',
+                            changeInShorts: 'change_in_dealer_short_all',
+                            changeInSpreading: 'change_in_dealer_spread_all',
                         },
                         {
                             name: 'Asset Managers',
@@ -75,6 +78,9 @@ export default function Tff({
                             tradersLong: 'traders_asset_mgr_long_all',
                             tradersShort: 'traders_asset_mgr_short_all',
                             tradersSpreading: 'traders_asset_mgr_spread',
+                            changeInLongs: 'change_in_asset_mgr_long',
+                            changeInShorts: 'change_in_asset_mgr_short',
+                            changeInSpreading: 'change_in_asset_mgr_spread',
                         },
                         {
                             name: 'Leveraged Funds',
@@ -87,6 +93,9 @@ export default function Tff({
                             tradersLong: 'traders_lev_money_long_all',
                             tradersShort: 'traders_lev_money_short_all',
                             tradersSpreading: 'traders_lev_money_spread',
+                            changeInLongs: 'change_in_lev_money_long',
+                            changeInShorts: 'change_in_lev_money_short',
+                            changeInSpreading: 'change_in_lev_money_spread',
                         },
                         {
                             name: 'Other Reportables',
@@ -99,6 +108,9 @@ export default function Tff({
                             tradersLong: 'traders_other_rept_long_all',
                             tradersShort: 'traders_other_rept_short',
                             tradersSpreading: 'traders_other_rept_spread',
+                            changeInLongs: 'change_in_other_rept_long',
+                            changeInShorts: 'change_in_other_rept_short',
+                            changeInSpreading: 'change_in_other_rept_spread',
                         },
                         {
                             name: 'Non-Reportables',
@@ -106,6 +118,8 @@ export default function Tff({
                             shorts: 'nonrept_positions_short_all',
                             longsPctOI: 'pct_of_oi_nonrept_long_all',
                             shortsPctOI: 'pct_of_oi_nonrept_short_all',
+                            changeInLongs: 'change_in_nonrept_long_all',
+                            changeInShorts: 'change_in_nonrept_short_all',
                         },
                     ]}
                 />

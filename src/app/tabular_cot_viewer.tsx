@@ -5,6 +5,7 @@ import { IAnyCOTReportType, IFinancialFuturesCOTReport, IDisaggregatedFuturesCOT
 import { formatDateYYYYMMDD } from '@/util';
 import { quantileTransformAt, zscore } from '@/chart_math';
 import { ArrSlice, newArrSlice } from '@/arr_slice';
+import { interpolateColor } from '@/lib/interpolate_color';
 
 type FilteredCOTReport<T extends IFinancialFuturesCOTReport | IDisaggregatedFuturesCOTReport | ILegacyFuturesCOTReport> = {
     [K in keyof T]: T[K] extends number ? K : never;
@@ -17,6 +18,9 @@ export interface ITradersCategoryColumn<T extends IFinancialFuturesCOTReport | I
     longs: FilteredCOTReportOnlyKeysToNumbers<T>,
     shorts: FilteredCOTReportOnlyKeysToNumbers<T>,
     spreading?: FilteredCOTReportOnlyKeysToNumbers<T>,
+    changeInLongs: FilteredCOTReportOnlyKeysToNumbers<T>,
+    changeInShorts: FilteredCOTReportOnlyKeysToNumbers<T>,
+    changeInSpreading?: FilteredCOTReportOnlyKeysToNumbers<T>,
     longsPctOI: FilteredCOTReportOnlyKeysToNumbers<T>,
     shortsPctOI: FilteredCOTReportOnlyKeysToNumbers<T>,
     spreadingPctOI?: FilteredCOTReportOnlyKeysToNumbers<T>,
@@ -56,20 +60,28 @@ export default function TabularCOTViewer<T extends IFinancialFuturesCOTReport | 
     const report = reports.at(currentReportsIdx);
     return (
         <div className="overflow-x-auto mx-auto">
-            <div>
+            <div className="flex-inline gap-5">
                 <label>
-                    Report Date
-                    <select value={currentReportsIdx} onChange={handleChangeDropdownDate} className="bg-slate-900 text-white w-1/4 rounded-md m-2 text-lg">
+                    <select
+                        value={currentReportsIdx} onChange={handleChangeDropdownDate}
+                        className="bg-slate-900 text-white w-1/4 rounded-md m-2 text-lg p-1 text-center"
+                    >
                         {reports.map((report, idx) => (
                             <option key={idx} value={idx}>{formatDateYYYYMMDD(new Date(report.timestamp))}</option>
                         ))}
                     </select>
                 </label>
+                <button disabled={currentReportsIdx <= 0} onClick={navPrevPage} className="px-5">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" className="bi bi-arrow-left" viewBox="0 0 16 16">
+                        <path fillRule="evenodd" d="M15 8a.5.5 0 0 0-.5-.5H2.707l3.147-3.146a.5.5 0 1 0-.708-.708l-4 4a.5.5 0 0 0 0 .708l4 4a.5.5 0 0 0 .708-.708L2.707 8.5H14.5A.5.5 0 0 0 15 8z" />
+                    </svg>
+                </button>
+                <button disabled={currentReportsIdx >= reports.length - 1} onClick={navNextPage} className="px-5">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" className="bi bi-arrow-right" viewBox="0 0 16 16">
+                        <path fillRule="evenodd" d="M1 8a.5.5 0 0 1 .5-.5h11.793l-3.147-3.146a.5.5 0 0 1 .708-.708l4 4a.5.5 0 0 1 0 .708l-4 4a.5.5 0 0 1-.708-.708L13.293 8.5H1.5A.5.5 0 0 1 1 8z" />
+                    </svg>
+                </button>
             </div>
-            <nav>
-                <button disabled={currentReportsIdx <= 0} onClick={navPrevPage}>Prev</button>
-                <button disabled={currentReportsIdx >= reports.length - 1} onClick={navNextPage}>Next</button>
-            </nav>
             <div>
                 <table className="table-auto">
                     <caption>
@@ -90,6 +102,26 @@ export default function TabularCOTViewer<T extends IFinancialFuturesCOTReport | 
                                 <abbr title="Net position 4 weeks ago">4wk ago</abbr>
                             </th>
                             <th>
+                                <abbr title="Z-score of the current net positioning with respect to the last 3 months">
+                                    3M z-score
+                                </abbr>
+                            </th>
+                            <th>
+                                <abbr title="Z-score of the current net positioning with respect to the last 6 months">
+                                    6M z-score
+                                </abbr>
+                            </th>
+                            <th>
+                                <abbr title="Z-score of the current net positioning with respect to the last 1 year">
+                                    1Y z-score
+                                </abbr>
+                            </th>
+                            <th>
+                                <abbr title="Z-score of the current net positioning with respect to the last 2 year">
+                                    2Y z-score
+                                </abbr>
+                            </th>
+                            <th>
                                 <abbr title="Percentile of current net positioning with respect to the past 3 months">
                                     3M %ile
                                 </abbr>
@@ -104,22 +136,23 @@ export default function TabularCOTViewer<T extends IFinancialFuturesCOTReport | 
                                     2Y %ile
                                 </abbr>
                             </th>
-                            <th>
-                                <abbr title="Z-score of the current net positioning with respect to the last 1 year">
-                                    1Y z-score
-                                </abbr>
-                            </th>
-                            <th>
-                                <abbr title="Z-score of the current net positioning with respect to the last 2 year">
-                                    2Y z-score
-                                </abbr>
-                            </th>
                         </tr>
                     </thead>
                     <tbody>
                         {reports.length > 0 && columns.map((column, colIdx) => {
                             const report = reports.at(currentReportsIdx);
                             if (report == null) return null;
+                            const past3M = newArrSlice(reports.slice(Math.max(0, currentReportsIdx - 12)).map(x => (x[column.longs] as number) - (x[column.shorts] as number)));
+                            const past3MPercentile = quantileTransformAt(past3M, past3M.arr.length - 1, 0., 1.);
+                            const past1Y = newArrSlice(reports.slice(Math.max(0, currentReportsIdx - 52)).map(x => (x[column.longs] as number) - (x[column.shorts] as number)));
+                            const past1YPercentile = quantileTransformAt(past1Y, past1Y.arr.length - 1, 0., 1.);
+                            const past2Y = newArrSlice(reports.slice(Math.max(0, currentReportsIdx - 104)).map(x => (x[column.longs] as number) - (x[column.shorts] as number)));
+                            const past2YPercentile = quantileTransformAt(past2Y, past2Y.arr.length - 1, 0., 1.);
+                            const past6M = newArrSlice(reports.slice(Math.max(0, currentReportsIdx - 26)).map(x => (x[column.longs] as number) - (x[column.shorts] as number)));
+                            const past3MZScore = zscore(past3M);
+                            const past6MZScore = zscore(past6M);
+                            const past1YZScore = zscore(past1Y);
+                            const past2YZScore = zscore(past2Y);
                             return (
                                 <tr key={colIdx}>
                                     <td>{column.name}</td>
@@ -133,41 +166,33 @@ export default function TabularCOTViewer<T extends IFinancialFuturesCOTReport | 
                                     <td className="font-mono text-right">
                                         {fmtThousandsSeparators((reports.at(currentReportsIdx - 4)?.[column.longs] as number ?? 0) - (reports.at(currentReportsIdx - 4)?.[column.shorts] as number ?? 0))}
                                     </td>
-                                    <td className="font-mono text-right">
-                                        {((): string => {
-                                            const pastYear = newArrSlice(reports.slice(Math.max(0, currentReportsIdx - 12)).map(x => (x[column.longs] as number) - (x[column.shorts] as number)));
-                                            const result = 100. * quantileTransformAt(pastYear, pastYear.arr.length - 1, 0., 1.);
-                                            return `${result.toFixed(0)}%`;
-                                        })()}
+                                    <td className="font-mono text-right" style={{ backgroundColor: interpolateColor(past3MZScore, -2., 2.) }}>
+                                        {past3MZScore.toFixed(3)}σ
                                     </td>
-                                    <td className="font-mono text-right">
-                                        {((): string => {
-                                            const pastYear = newArrSlice(reports.slice(Math.max(0, currentReportsIdx - 52)).map(x => (x[column.longs] as number) - (x[column.shorts] as number)));
-                                            const result = 100. * quantileTransformAt(pastYear, pastYear.arr.length - 1, 0., 1.);
-                                            return `${result.toFixed(0)}%`;
-                                        })()}
-
+                                    <td className="font-mono text-right" style={{ backgroundColor: interpolateColor(past6MZScore, -2., 2.) }}>
+                                        {past6MZScore.toFixed(3)}σ
                                     </td>
-                                    <td className="font-mono text-right">
-                                        {((): string => {
-                                            const pastYear = newArrSlice(reports.slice(Math.max(0, currentReportsIdx - 104)).map(x => (x[column.longs] as number) - (x[column.shorts] as number)));
-                                            const result = 100. * quantileTransformAt(pastYear, pastYear.arr.length - 1, 0., 1.);
-                                            return `${result.toFixed(0)}%`;
-                                        })()}
+                                    <td className="font-mono text-right" style={{ backgroundColor: interpolateColor(past1YZScore, -2., 2.) }}>
+                                        {past1YZScore.toFixed(3)}σ
                                     </td>
-                                    <td className="font-mono text-right">
-                                        {zscore(newArrSlice(reports.slice(Math.max(0, currentReportsIdx - 52)).map(x => (x[column.longs] as number) - (x[column.shorts] as number)))).toFixed(3)}σ
+                                    <td className="font-mono text-right" style={{ backgroundColor: interpolateColor(past2YZScore, -2., 2.) }}>
+                                        {past2YZScore.toFixed(3)}σ
                                     </td>
-                                    <td className="font-mono text-right">
-                                        {zscore(newArrSlice(reports.slice(Math.max(0, currentReportsIdx - 104)).map(x => (x[column.longs] as number) - (x[column.shorts] as number)))).toFixed(3)}σ
+                                    <td className="font-mono text-right" style={{ backgroundColor: interpolateColor(past3MPercentile, 0., 1.) }}>
+                                        {(100. * past3MPercentile).toFixed(0)}%
                                     </td>
-
+                                    <td className="font-mono text-right" style={{ backgroundColor: interpolateColor(past1YPercentile, 0., 1.) }}>
+                                        {(100. * past1YPercentile).toFixed(0)}%
+                                    </td>
+                                    <td className="font-mono text-right" style={{ backgroundColor: interpolateColor(past2YPercentile, 0., 1.) }}>
+                                        {(100. * past2YPercentile).toFixed(0)}%
+                                    </td>
                                 </tr>
                             );
                         })}
                     </tbody>
                 </table>
-                <table className="table-auto caption-top border-collapse min-w-full">
+                <table className="table-auto caption-top border-collapse min-w-full mt-8">
                     <caption>
                         {reports.at(currentReportsIdx)?.market_and_exchange_names} - week ending {formatDateYYYYMMDD(new Date(reports.at(currentReportsIdx)?.timestamp ?? 0))} - Full Report
                     </caption>
@@ -175,13 +200,13 @@ export default function TabularCOTViewer<T extends IFinancialFuturesCOTReport | 
                         <tr>
                             <th>
                             </th>
-                            <th colSpan={3} className="border-r border-slate-700">
+                            <th colSpan={4} className="border-r border-slate-700">
                                 Longs
                             </th>
-                            <th colSpan={3} className="border-r border-slate-700">
+                            <th colSpan={4} className="border-r border-slate-700">
                                 Shorts
                             </th>
-                            <th colSpan={3}>
+                            <th colSpan={4}>
                                 Spreading
                             </th>
                         </tr>
@@ -189,39 +214,54 @@ export default function TabularCOTViewer<T extends IFinancialFuturesCOTReport | 
                             <th>
                             </th>
 
-                            <th>
+                            <th className="text-right">
                                 Positions
                             </th>
-                            <th>
+                            <th className="text-right">
+                                <abbr title="Change in long positions from the previous week">
+                                    Δ
+                                </abbr>
+                            </th>
+                            <th className="text-right">
                                 <abbr title="Percentage of total open interest held long by this category of trader">
                                     % OI
                                 </abbr>
                             </th>
-                            <th className="text-sm mr-5 border-r border-slate-700">
+                            <th className="text-sm mr-5 border-r border-slate-700 text-right">
                                 <abbr title="Number of traders long">#</abbr>
                             </th>
 
-                            <th className="ml-8">
+                            <th className="ml-8 text-right">
                                 Positions
                             </th>
-                            <th>
+                            <th className="text-right">
+                                <abbr title="Change in long positions from the previous week">
+                                    Δ
+                                </abbr>
+                            </th>
+                            <th className="text-right">
                                 <abbr title="Percentage of total open interest held short by this category of trader">
                                     % OI
                                 </abbr>
                             </th>
-                            <th className="text-sm mr-5 border-r border-slate-700">
+                            <th className="text-sm mr-5 border-r border-slate-700 text-right">
                                 <abbr title="Number of traders short">#</abbr>
                             </th>
 
-                            <th className="ml-8">
+                            <th className="ml-8 text-right">
                                 Positions
                             </th>
-                            <th>
+                            <th className="text-right">
+                                <abbr title="Change in long positions from the previous week">
+                                    Δ
+                                </abbr>
+                            </th>
+                            <th className="text-right">
                                 <abbr title="Percentage of total open interest held in spreading positions by this category of trader">
                                     % OI
                                 </abbr>
                             </th>
-                            <th>
+                            <th className="text-right">
                                 <abbr title="Number of traders spreading">#</abbr>
                             </th>
                         </tr>
@@ -235,7 +275,10 @@ export default function TabularCOTViewer<T extends IFinancialFuturesCOTReport | 
                                     <td>{column.name}</td>
 
                                     <td className="font-mono text-right">
-                                        {fmtThousandsSeparators(report[column.longs] as number)}
+                                        <span>{fmtThousandsSeparators(report[column.longs] as number)}</span>
+                                    </td>
+                                    <td className="font-mono text-right">
+                                        {fmtThousandsSeparators(report[column.changeInLongs] as number)}
                                     </td>
                                     <td className="font-mono text-right">
                                         {report[column.longsPctOI] as number}%
@@ -248,6 +291,9 @@ export default function TabularCOTViewer<T extends IFinancialFuturesCOTReport | 
                                         {fmtThousandsSeparators(report[column.shorts] as number)}
                                     </td>
                                     <td className="font-mono text-right">
+                                        {fmtThousandsSeparators(report[column.changeInShorts] as number)}
+                                    </td>
+                                    <td className="font-mono text-right">
                                         {report[column.shortsPctOI] as number}%
                                     </td>
                                     <td className="font-mono text-right border-r border-slate-700">
@@ -256,6 +302,9 @@ export default function TabularCOTViewer<T extends IFinancialFuturesCOTReport | 
 
                                     <td className="font-mono text-right ml-8">
                                         {column.spreading && fmtThousandsSeparators(report[column.spreading] as number)}
+                                    </td>
+                                    <td className="font-mono text-right">
+                                        {column.changeInSpreading && fmtThousandsSeparators(report[column.changeInSpreading] as number)}
                                     </td>
                                     <td className="font-mono text-right">
                                         {column.spreadingPctOI && `${report[column.spreadingPctOI] as number}%`}
@@ -270,6 +319,6 @@ export default function TabularCOTViewer<T extends IFinancialFuturesCOTReport | 
                     </tbody>
                 </table>
             </div>
-        </div>
+        </div >
     )
 }

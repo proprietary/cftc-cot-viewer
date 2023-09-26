@@ -60,6 +60,8 @@ export default function Legacy({
                             shortsPctOI: 'pct_of_oi_comm_short_all',
                             tradersLong: 'traders_comm_long_all',
                             tradersShort: 'traders_comm_short_all',
+                            changeInLongs: 'change_in_comm_long_all',
+                            changeInShorts: 'change_in_comm_short_all',
                         },
                         {
                             name: 'Non-Commercials',
@@ -72,6 +74,9 @@ export default function Legacy({
                             tradersLong: 'traders_noncomm_long_all',
                             tradersShort: 'traders_noncomm_short_all',
                             tradersSpreading: 'traders_noncomm_spread_all',
+                            changeInLongs: 'change_in_noncomm_long_all',
+                            changeInShorts: 'change_in_noncomm_short_all',
+                            changeInSpreading: 'change_in_noncomm_spead_all',
                         },
                         {
                             name: 'Non-Reportables',
@@ -79,6 +84,8 @@ export default function Legacy({
                             shorts: 'nonrept_positions_short_all',
                             longsPctOI: 'pct_of_oi_nonrept_long_all',
                             shortsPctOI: 'pct_of_oi_nonrept_short_all',
+                            changeInLongs: 'change_in_nonrept_long_all',
+                            changeInShorts: 'change_in_nonrept_short_all',
                         },
                     ]}
                 />
