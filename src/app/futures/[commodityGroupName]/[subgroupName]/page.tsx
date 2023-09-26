@@ -95,10 +95,6 @@ export default async function Page({
                     </div>
                 </div>
             ))}
-
-            <div>
-                <pre>{JSON.stringify(MapToJson(c), null, 4)}</pre>
-            </div>
         </div>
     )
 }
