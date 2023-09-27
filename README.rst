@@ -42,6 +42,7 @@ Installation (Advanced)
 Requires Node.js and a Node package manager such as `npm`, `yarn` or `pnpm`:
 
 .. code-block:: bash
+
     $ git clone https://github.com/proprietary/cftc-cot-viewer.git
     $ cd cftc-cot-viewer.git
     $ npx next build
@@ -49,9 +50,10 @@ Requires Node.js and a Node package manager such as `npm`, `yarn` or `pnpm`:
 The static site files will be generated in `out/`. You can serve that directory on a web server directly, or locally, for example, via:
 
 .. code-block:: bash
+
     $ python3 -m http.server -d out
 
-+++++++++++++
+++++++++++++
 Contributing
 ++++++++++++
 

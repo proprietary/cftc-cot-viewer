@@ -26,7 +26,10 @@ All the commodities/financial futures with reporting requirements have a Legacy 
 
 From the CFTC::
 
-    The Legacy reports are broken down by exchange. These reports have a futures only report and a combined futures and options report. Legacy reports break down the reportable open interest positions into two classifications: non-commercial and commercial traders.
+    The Legacy reports are broken down by exchange. These reports have a futures
+    only report and a combined futures and options report. Legacy reports break
+    down the reportable open interest positions into two classifications:
+    non-commercial and commercial traders.
 
 Disaggregated
 -------------
