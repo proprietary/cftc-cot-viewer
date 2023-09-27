@@ -495,6 +495,20 @@ export const CommodityCodes: ICommodityCodes = {
             ],
         },
     ],
+    '080': [
+        {
+            name: 'Sugar, No. 11',
+            cftcCommodityCode: '080',
+            priceFeeds: [
+                {
+                    source: 'FRED',
+                    name: 'Global price of Sugar, No. 11',
+                    symbol: 'PSUGAISAUSDM',
+                    transforms: [],
+                },
+            ],
+        },
+    ],
 };
 
 function fredTreasuryYield(priceBars: PriceBar[]) {
