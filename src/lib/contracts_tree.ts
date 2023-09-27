@@ -37,6 +37,11 @@ export type CommodityContractKindVariants = {
 
 export type CCTree2 = Map<string, CCTree2 | CommodityContractKindVariants[]>;
 
+export type CCTree3 = {
+    node: Map<string, CCTree3>,
+    value: CommodityContractKindVariants[],
+}
+
 export class ContractsTree implements Iterable<CommodityContractKind> {
     private tff: readonly CommodityContractKind[];
     private disaggregated: readonly CommodityContractKind[];
@@ -139,8 +144,8 @@ export class ContractsTree implements Iterable<CommodityContractKind> {
     public selectTree<WhereCols extends keyof CommodityContractKind, NestingCols extends keyof CommodityContractKind>(
         where: { [k in WhereCols]: CommodityContractKind[keyof CommodityContractKind] },
         nestingKeys: NestingCols[],
-    ): CCTree2 {
-        let dst: CCTree2 = new Map<string, CCTree2>();
+    ): CCTree3 {
+        let dst: CCTree3 = {node: new Map<string, CCTree3>(), value: []};
         if (nestingKeys.length === 0) return dst;
         outerLoop: for (const contract of this) {
             let didSurviveFilter = true;
@@ -153,27 +158,28 @@ export class ContractsTree implements Iterable<CommodityContractKind> {
             }
             if (!didSurviveFilter) continue;
 
-            let cur = dst;
+            let cur = dst.node;
             for (let i = 0; i < nestingKeys.length - 1; ++i) {
                 if (!(nestingKeys[i] in contract)) continue outerLoop;
                 let v = contract[nestingKeys[i]];
-                if (v === undefined || typeof v === 'undefined' || v == null) continue outerLoop; // edge case
+                if (v == null) continue outerLoop; // edge case
                 if (!cur.has(v as string)) {
-                    cur.set(v as string, new Map<string, CCTree2>());
+                    cur.set(v as string, {node: new Map<string, CCTree3>(), value: []});
                 }
-                cur = cur.get(v as string) as CCTree2;
+                cur = cur.get(v as string)!.node;
             }
             if (!(nestingKeys.at(-1)! in contract) || contract[nestingKeys.at(-1)!] == null) continue; // edge case
-            let v = cur.get(contract[nestingKeys.at(-1)!] as string);
-            if (v == null) {
-                cur.set(contract[nestingKeys.at(-1)!] as string, [{[contract.reportType]: contract}]);
+            let p = cur.get(contract[nestingKeys.at(-1)!] as string);
+            if (p == null) {
+                cur.set(contract[nestingKeys.at(-1)!] as string, {node: new Map(), value: [{[contract.reportType]: contract}]});
             } else {
-                let foundIdx = (v as CommodityContractKindVariants[]).findIndex(x => Object.values(x).findIndex(y => y.cftcContractMarketCode === contract.cftcContractMarketCode) !== -1);
+                let foundIdx = p.value.findIndex(x => Object.values(x).findIndex(y => y != null && y.cftcContractMarketCode === contract.cftcContractMarketCode) !== -1);
                 if (foundIdx !== -1) {
-                    (v as CommodityContractKindVariants[])[foundIdx][contract.reportType] = contract;
-                    cur.set(contract[nestingKeys.at(-1)!] as string, v);
+                    p.value[foundIdx][contract.reportType] = contract;
+                    cur.set(contract[nestingKeys.at(-1)!] as string, p);
                 } else {
-                    cur.set(contract[nestingKeys.at(-1)!] as string, (v as CommodityContractKindVariants[]).concat([{[contract.reportType]: contract}]));
+                    p.value.push({[contract.reportType]: contract});
+                    cur.set(contract[nestingKeys.at(-1)!] as string, p);
                 }
             }
         }

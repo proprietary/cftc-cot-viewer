@@ -56,11 +56,10 @@ export async function generateStaticParams({
     let dst: {commodityGroupName: string, subgroupName: string, commodityName: string, cftcCode: string}[] = [];
     let res = contractsTree.selectTree({}, ['group', 'commoditySubgroupName', 'commodityName']);
     //console.log(JSON.stringify(mapToObject(res), null, 2));
-    for (const [commodityGroupName, subtree1] of res.entries()) {
-        for (const [subgroupName, subtree2] of (subtree1 as CCTree2).entries())  {
-            console.log(mapToObject(subtree2 as CCTree2));
-            for (const [commodityName, subtree3] of (subtree2 as CCTree2).entries()) {
-                for (const contr of (subtree3 as CommodityContractKindVariants[])) {
+    for (const [commodityGroupName, subtree1] of res.node.entries()) {
+        for (const [subgroupName, subtree2] of subtree1.node.entries())  {
+            for (const [commodityName, subtree3] of subtree2.node.entries()) {
+                for (const contr of subtree3.value) {
                     const cont = Object.values(contr).at(0)!;
                     let intermediate = {
                         commodityGroupName: encodeURIComponent(allCapsToSlug(commodityGroupName)),

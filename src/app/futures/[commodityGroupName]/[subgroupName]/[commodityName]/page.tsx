@@ -92,9 +92,9 @@ export async function generateStaticParams({
     const contractsTree = await FetchAllAvailableContracts();
     let a = contractsTree.selectTree({}, ['group', 'commoditySubgroupName']);
     let dst: { commodityGroupName: string, subgroupName: string, commodityName: string }[] = [];
-    for (const [commodityGroupName, subtree] of contractsTree.selectTree({}, ['group', 'commoditySubgroupName', 'commodityName']).entries()) {
-        for (const [subgroupName, subtree2] of (subtree as CCTree2).entries()) {
-            for (const commodityName of (subtree2 as CCTree2).keys()) {
+    for (const [commodityGroupName, subtree] of contractsTree.selectTree({}, ['group', 'commoditySubgroupName', 'commodityName']).node.entries()) {
+        for (const [subgroupName, subtree2] of subtree.node.entries()) {
+            for (const commodityName of subtree2.node.keys()) {
                 dst.push({
                     commodityGroupName: encodeURIComponent(allCapsToSlug(commodityGroupName)),
                     subgroupName: encodeURIComponent(allCapsToSlug(subgroupName)),

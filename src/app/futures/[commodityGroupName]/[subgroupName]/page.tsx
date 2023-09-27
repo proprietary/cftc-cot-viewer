@@ -25,8 +25,8 @@ export default async function Page({
     ).get("commodityName")!.entries());
 
     let dst: {commodityGroupName: string, subgroupName: string}[] = [];
-    for (const [commodityGroupName, subtree] of contractsTree.selectTree({}, ['group', 'commoditySubgroupName']).entries()) {
-        for (const subgroupName of (subtree as CCTree2).keys()) {
+    for (const [commodityGroupName, subtree] of contractsTree.selectTree({}, ['group', 'commoditySubgroupName']).node.entries()) {
+        for (const subgroupName of subtree.node.keys()) {
             dst.push({
                 commodityGroupName: encodeURIComponent(allCapsToSlug(commodityGroupName)),
                 subgroupName: encodeURIComponent(allCapsToSlug(subgroupName)),
@@ -99,8 +99,8 @@ export async function generateStaticParams({
 }) {
     const contractsTree = await FetchAllAvailableContracts();
     let dst: {commodityGroupName: string, subgroupName: string}[] = [];
-    for (const [commodityGroupName, subtree] of contractsTree.selectTree({}, ['group', 'commoditySubgroupName']).entries()) {
-        for (const subgroupName of (subtree as CCTree2).keys()) {
+    for (const [commodityGroupName, subtree] of contractsTree.selectTree({}, ['group', 'commoditySubgroupName']).node.entries()) {
+        for (const subgroupName of subtree.node.keys()) {
             dst.push({
                 commodityGroupName: encodeURIComponent(allCapsToSlug(commodityGroupName)),
                 subgroupName: encodeURIComponent(allCapsToSlug(subgroupName)),
