@@ -1,11 +1,10 @@
-import { SocrataApi, fetchAllAvailableContracts, makeContractsTree } from "@/lib/socrata_api";
-import { CFTCCommodityGroupType, CFTCReportType } from "@/common_types";
-import { allCapsToSlug, slugToTitle, slugToAllCaps } from "@/lib/cftc_api_utils";
-import SubgroupTree from "@/app/futures/subgroup_tree";
+import { allCapsToSlug } from "@/lib/cftc_api_utils";
 import Link from "next/link";
 import { FetchAllAvailableContracts } from "@/lib/fetchAvailableContracts";
-import { CommodityContractKind } from "@/lib/CommodityContractKind";
 import Breadcrumbs from "@/components/breadcrumbs";
+import { CFTCReportType } from "@/common_types";
+import { CCTree2 } from "@/lib/contracts_tree";
+import { mapToObject } from "@/mapToObject";
 
 export default async function Page({
     params
@@ -24,6 +23,16 @@ export default async function Page({
             "commodityName",
         ],
     ).get("commodityName")!.entries());
+
+    let dst: {commodityGroupName: string, subgroupName: string}[] = [];
+    for (const [commodityGroupName, subtree] of contractsTree.selectTree({}, ['group', 'commoditySubgroupName']).entries()) {
+        for (const subgroupName of (subtree as CCTree2).keys()) {
+            dst.push({
+                commodityGroupName: encodeURIComponent(allCapsToSlug(commodityGroupName)),
+                subgroupName: encodeURIComponent(allCapsToSlug(subgroupName)),
+            });
+        }
+    }
     return (
         <div className="flex min-h-screen flex-col mx-auto w-11/12">
             <Breadcrumbs
@@ -89,7 +98,18 @@ export async function generateStaticParams({
     params: { commodityGroupName: string },
 }) {
     const contractsTree = await FetchAllAvailableContracts();
-    return contractsTree.getSubgroupNames(params.commodityGroupName).map((subgroupName) => ({
-        subgroupName: encodeURIComponent(subgroupName),
-    }))
+    let dst: {commodityGroupName: string, subgroupName: string}[] = [];
+    for (const [commodityGroupName, subtree] of contractsTree.selectTree({}, ['group', 'commoditySubgroupName']).entries()) {
+        for (const subgroupName of (subtree as CCTree2).keys()) {
+            dst.push({
+                commodityGroupName: encodeURIComponent(allCapsToSlug(commodityGroupName)),
+                subgroupName: encodeURIComponent(allCapsToSlug(subgroupName)),
+            });
+        }
+    }
+    return dst;
+    // return contractsTree.getGroupNames().flatMap((groupName) => contractsTree.getSubgroupNames(groupName).map(subgroupName => ({
+    //     subgroupName: encodeURIComponent(subgroupName),
+    //     commodityGroupName: encodeURIComponent(groupName),
+    // })));
 }

@@ -1,7 +1,5 @@
 'use client';
 
-import Link from 'next/link';
-
 import React from 'react';
 
 export default function Navbar() {
@@ -17,10 +15,10 @@ export default function Navbar() {
 
                 <div className={`w-full md:flex md:items-center md:w-auto ${!open && "hidden"}`}>
                     <ul className="pt-4 text-base text-slate-200 md:flex md:justify-between md:pt-0">
-                        <li><Link className="md:p-4 block py-2 hover:text-indigo-300" href="/">Home</Link></li>
-                        <li><Link className="md:p-4 block py-2 hover:text-indigo-300" href="/futures/financial-instruments">Financial</Link></li>
-                        <li><Link className="md:p-4 block py-2 hover:text-indigo-300" href="/futures/agriculture">Agriculture</Link></li>
-                        <li><Link className="md:p-4 block py-2 hover:text-indigo-300" href="/futures/natural-resources">Natural Resources</Link></li>
+                        <li><a className="md:p-4 block py-2 hover:text-indigo-300" href="/">Home</a></li>
+                        <li><a className="md:p-4 block py-2 hover:text-indigo-300" href="/futures/financial-instruments">Financial</a></li>
+                        <li><a className="md:p-4 block py-2 hover:text-indigo-300" href="/futures/agriculture">Agriculture</a></li>
+                        <li><a className="md:p-4 block py-2 hover:text-indigo-300" href="/futures/natural-resources">Natural Resources</a></li>
                     </ul>
                 </div>
             </nav>

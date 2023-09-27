@@ -6,6 +6,8 @@ import CommodityTree from "@/app/futures/commodity_tree";
 import { FetchAllAvailableContracts } from "@/lib/fetchAvailableContracts";
 import { CommodityContractKind } from "@/lib/CommodityContractKind";
 import Breadcrumbs from "@/components/breadcrumbs";
+import { mapToObject } from '@/mapToObject';
+import { CCTree2 } from "@/lib/contracts_tree";
 
 export default async function Page({
     params
@@ -87,10 +89,19 @@ export async function generateStaticParams({
     params: { commodityGroupName: string, subgroupName: string },
 }) {
     if (params.commodityGroupName == null || params.subgroupName == null) return [];
-    const commodityGroupName = decodeURIComponent(params.commodityGroupName);
-    const subgroupName = decodeURIComponent(params.subgroupName);
     const contractsTree = await FetchAllAvailableContracts();
-    return contractsTree.getCommodityNames(commodityGroupName, subgroupName).map((commodityName) => ({
-        commodityName: encodeURIComponent(commodityName),
-    }));
+    let a = contractsTree.selectTree({}, ['group', 'commoditySubgroupName']);
+    let dst: { commodityGroupName: string, subgroupName: string, commodityName: string }[] = [];
+    for (const [commodityGroupName, subtree] of contractsTree.selectTree({}, ['group', 'commoditySubgroupName', 'commodityName']).entries()) {
+        for (const [subgroupName, subtree2] of (subtree as CCTree2).entries()) {
+            for (const commodityName of (subtree2 as CCTree2).keys()) {
+                dst.push({
+                    commodityGroupName: encodeURIComponent(allCapsToSlug(commodityGroupName)),
+                    subgroupName: encodeURIComponent(allCapsToSlug(subgroupName)),
+                    commodityName: encodeURIComponent(allCapsToSlug(commodityName)),
+                });
+            }
+        }
+    }
+    return dst;
 }

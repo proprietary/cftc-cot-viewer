@@ -32,8 +32,10 @@ export type ContractTriplet = {
 }
 
 export type CommodityContractKindVariants = {
-    [reportType in CFTCReportType]: CommodityContractKind | undefined;
+    [reportType in CFTCReportType]?: CommodityContractKind | undefined;
 }
+
+export type CCTree2 = Map<string, CCTree2 | CommodityContractKindVariants[]>;
 
 export class ContractsTree implements Iterable<CommodityContractKind> {
     private tff: readonly CommodityContractKind[];
@@ -134,6 +136,51 @@ export class ContractsTree implements Iterable<CommodityContractKind> {
         return outputMap;
     }
 
+    public selectTree<WhereCols extends keyof CommodityContractKind, NestingCols extends keyof CommodityContractKind>(
+        where: { [k in WhereCols]: CommodityContractKind[keyof CommodityContractKind] },
+        nestingKeys: NestingCols[],
+    ): CCTree2 {
+        let dst: CCTree2 = new Map<string, CCTree2>();
+        if (nestingKeys.length === 0) return dst;
+        outerLoop: for (const contract of this) {
+            let didSurviveFilter = true;
+            for (const [queryCol, queryValue] of Object.entries(where)) {
+                const entry = contract[queryCol as WhereCols];
+                if (entry !== queryValue && this.nameEncoder(entry?.toString() ?? '') !== queryValue) {
+                    didSurviveFilter = false;
+                    break;
+                }
+            }
+            if (!didSurviveFilter) continue;
+
+            let cur = dst;
+            for (let i = 0; i < nestingKeys.length - 1; ++i) {
+                if (!(nestingKeys[i] in contract)) continue outerLoop;
+                let v = contract[nestingKeys[i]];
+                if (v === undefined || typeof v === 'undefined' || v == null) continue outerLoop; // edge case
+                if (!cur.has(v as string)) {
+                    cur.set(v as string, new Map<string, CCTree2>());
+                }
+                cur = cur.get(v as string) as CCTree2;
+            }
+            if (!(nestingKeys.at(-1)! in contract) || contract[nestingKeys.at(-1)!] == null) continue; // edge case
+            let v = cur.get(contract[nestingKeys.at(-1)!] as string);
+            if (v == null) {
+                cur.set(contract[nestingKeys.at(-1)!] as string, [{[contract.reportType]: contract}]);
+            } else {
+                let foundIdx = (v as CommodityContractKindVariants[]).findIndex(x => Object.values(x).findIndex(y => y.cftcContractMarketCode === contract.cftcContractMarketCode) !== -1);
+                if (foundIdx !== -1) {
+                    (v as CommodityContractKindVariants[])[foundIdx][contract.reportType] = contract;
+                    cur.set(contract[nestingKeys.at(-1)!] as string, v);
+                } else {
+                    cur.set(contract[nestingKeys.at(-1)!] as string, (v as CommodityContractKindVariants[]).concat([{[contract.reportType]: contract}]));
+                }
+            }
+        }
+
+        return dst;
+    }
+
     private getInnerCommodityContractsSorted(
         groupName: string,
         subgroupName: string,
@@ -173,7 +220,6 @@ export class ContractsTree implements Iterable<CommodityContractKind> {
     }
 
     public getCommodityContract(groupName: string, subgroupName: string, commodityName: string, reportType: CFTCReportType, cftcContractMarketCode: string): CommodityContractKind | null {
-        console.log(`groupname: ${groupName}, commodityName: ${commodityName}, reportType: ${reportType}, cftcCode: ${cftcContractMarketCode}`)
         const cons: MarketAndExchangeTreeType = this.tree[groupName]?.[subgroupName]?.[commodityName];
         for (const [_, contractSet] of Object.entries(cons ?? {})) {
             const needle = contractSet[reportType].find(x => x.cftcContractMarketCode === cftcContractMarketCode);

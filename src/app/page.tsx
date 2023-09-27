@@ -1,5 +1,3 @@
-import Link from "next/link"
-
 export default function Home() {
   return (
     <main className="flex min-h-screen flex-col items-center justify-between w-11/12 mx-auto sm:w-3/4">
@@ -12,32 +10,32 @@ export default function Home() {
               View common futures:
             </p>
             <div className="space-x-5 flex-inline">
-              <Link
+              <a
                 className="text-blue-500 hover:text-blue-700"
                 href={"/futures/financial-instruments/stock-indices/s%26p-broad-based-stock-indices/13874A/traders-in-financial-futures"}
               >
                 S&P 500
-              </Link>
-              <Link
+              </a>
+              <a
                 className="text-blue-500 hover:text-blue-700"
                 href={"/futures/financial-instruments/stock-indices/nasdaq--broadbased-indices/209742/traders-in-financial-futures"}
               >
                 Nasdaq-100
-              </Link>
-              <Link
+              </a>
+              <a
                 className="text-blue-500 hover:text-blue-700"
                 href={"/futures/natural-resources/petroleum-and-products/crude-oil/067651/disaggregated"}
               >
                 Crude Oil
-              </Link>
+              </a>
             </div>
           </div>
           <div className="pt-5">
             <div className="pb-5">Or explore all the various categories (we have <em>everything</em> the CFTC collects reports on)…</div>
             <ul className="space-y-5 flex flex-col ml-3 text-lg">
-              <li><Link className="text-blue-500 hover:text-blue-700" href={"/futures/financial-instruments"}>Financial (stock indices, bonds, currencies)</Link></li>
-              <li><Link className="text-blue-500 hover:text-blue-700" href={"/futures/agriculture"}>Agriculture (softs, grains)</Link></li>
-              <li><Link className="text-blue-500 hover:text-blue-700" href={"/futures/natural-resources"}>Natural Resources (energy, materials)</Link></li>
+              <li><a className="text-blue-500 hover:text-blue-700" href={"/futures/financial-instruments"}>Financial (stock indices, bonds, currencies)</a></li>
+              <li><a className="text-blue-500 hover:text-blue-700" href={"/futures/agriculture"}>Agriculture (softs, grains)</a></li>
+              <li><a className="text-blue-500 hover:text-blue-700" href={"/futures/natural-resources"}>Natural Resources (energy, materials)</a></li>
             </ul>
           </div>
         </article>
