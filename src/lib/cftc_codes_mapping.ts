@@ -136,7 +136,7 @@ export const CommodityCodes: ICommodityCodes = {
                 source: 'FRED',
                 symbol: 'DEXMXUS',
                 name: 'U.S. Dollar to Mexican Peso spot exchange rate',
-                transforms: [(x: number) => x * -1],
+                transforms: [invertFxExchangeRate],
             },
         ],
         urls: [
@@ -151,7 +151,7 @@ export const CommodityCodes: ICommodityCodes = {
                 source: 'FRED',
                 symbol: 'DEXCAUS',
                 name: 'U.S. Dollar to Canadian Dollar spot exchange rate',
-                transforms: [(x: number) => x * -1],
+                transforms: [invertFxExchangeRate],
             },
         ],
     }],
@@ -163,7 +163,7 @@ export const CommodityCodes: ICommodityCodes = {
                 source: 'FRED',
                 symbol: 'DEXUSNZ',
                 name: 'U.S. Dollar to New Zealand Dollar spot exchange rate',
-                transforms: [(x: number) => x * -1],
+                transforms: [invertFxExchangeRate],
             },
         ],
     }],
@@ -175,7 +175,7 @@ export const CommodityCodes: ICommodityCodes = {
                 source: 'FRED',
                 symbol: 'DEXBZUS',
                 name: 'U.S. Dollar to Brazilian Reals spot exchange rate',
-                transforms: [(x: number) => x * -1],
+                transforms: [invertFxExchangeRate],
             },
         ],
     }],
@@ -211,7 +211,7 @@ export const CommodityCodes: ICommodityCodes = {
                 source: 'FRED',
                 symbol: 'DEXJPUS',
                 name: 'U.S. Dollar to Japanese Yen spot exchange rate',
-                transforms: [(x: number) => x * -1],
+                transforms: [invertFxExchangeRate],
             },
         ],
     }],
@@ -223,7 +223,7 @@ export const CommodityCodes: ICommodityCodes = {
                 source: 'FRED',
                 symbol: 'DEXSZUS',
                 name: 'U.S. Dollar to Swiss Francs spot exchange rate',
-                transforms: [(x: number) => x * -1]
+                transforms: [invertFxExchangeRate]
             },
         ],
     }],
@@ -259,7 +259,7 @@ export const CommodityCodes: ICommodityCodes = {
                 source: 'FRED',
                 symbol: 'DEXSFUS',
                 name: 'U.S. Dollar to South African Rand spot exchange rate',
-                transforms: [(x: number) => x * -1],
+                transforms: [invertFxExchangeRate],
             },
         ],
     }],
@@ -501,4 +501,11 @@ function fredTreasuryYield(priceBars: PriceBar[]) {
     return priceBars.map((priceBar: PriceBar) => {
         return { ...priceBar, close: priceBar.close * -1.0 };
     });
+}
+
+function invertFxExchangeRate(priceBars: PriceBar[]) {
+    for (let i = 0; i < priceBars.length; ++i) {
+        priceBars[i].close *= -1.;
+    }
+    return priceBars;
 }

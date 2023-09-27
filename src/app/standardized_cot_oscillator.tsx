@@ -168,7 +168,6 @@ export default function StandardizedCotOscillator(
     }, [plottedColumns, lookback, normalizationMethod]);
 
     const genEchartsOption = (): ECOption => {
-        const pds = generatePriceDataSeries(priceData ?? []);
         let dst: ECOption = {
             aria: {
                 enabled: true,
@@ -203,7 +202,12 @@ export default function StandardizedCotOscillator(
             ],
             series: [
                 ...computeSeries(),
-                ...(pds?.series ?? []),
+                {
+                    name: 'Price',
+                    type: 'line',
+                    yAxisIndex: 1,
+                    data: priceData != null ? priceData.map(x => x.close) : [],
+                }
             ],
             xAxis: [
                 {
