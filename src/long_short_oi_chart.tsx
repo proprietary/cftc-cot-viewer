@@ -8,7 +8,6 @@ import { LineChart, } from 'echarts/charts';
 import type { TooltipComponentOption, TitleComponentOption, LegendComponentOption, DataZoomComponentOption, GridComponentOption, DatasetComponentOption, ToolboxComponentOption } from 'echarts/components';
 import { DataZoomComponent, DataZoomSliderComponent, DatasetComponent, LegendComponent, TitleComponent, ToolboxComponent, TooltipComponent } from 'echarts/components';
 import { LHAssert, SCREEN_LARGE, SCREEN_SMALL, formatDateYYYYMMDD } from './util';
-import useLargeChartDimensions, { useViewportDimensions } from './large_chart_dims_hook';
 import { IFinancialFuturesCOTReport, IAnyCOTReportType, IDisaggregatedFuturesCOTReport, ILegacyFuturesCOTReport } from './socrata_cot_report';
 
 echarts.use([TitleComponent, LineChart, DatasetComponent, TooltipComponent, LegendComponent, DataZoomComponent, DataZoomSliderComponent, ToolboxComponent]);
@@ -181,9 +180,6 @@ export default function LongShortOIChart(
         };
     }
 
-    // compute breakpoints for the ECharts instance; making it responsive
-    const {eChartsHeight, eChartsWidth} = useLargeChartDimensions();
-
     return (
         <div className="my-5">
             <div className="w-full">
@@ -192,8 +188,8 @@ export default function LongShortOIChart(
                     theme={"dark"}
                     option={generateOptions()}
                     style={{
-                        height: eChartsHeight,
-                        width: eChartsWidth,
+                        height: 500,
+                        width: 'auto',
                     }}
                 />
             </div>

@@ -145,9 +145,6 @@ export default function CommitmentChangesChart<T extends IFinancialFuturesCOTRep
         });
     }, [cols, dataFrame, nWeeksDelta, posnMethod]);
 
-    // compute breakpoints for the ECharts instance; making it responsive
-    const { eChartsHeight, eChartsWidth } = useLargeChartDimensions();
-
     const handleOptionChange = React.useCallback((ev: React.ChangeEvent<HTMLInputElement>) => {
         setPosnMethod(ev.target.value as PositioningAggregationMethod);
     }, []);
@@ -189,8 +186,8 @@ export default function CommitmentChangesChart<T extends IFinancialFuturesCOTRep
                     option={echartsOptionRef.current}
                     theme={"dark"}
                     style={{
-                        height: eChartsHeight,
-                        width: eChartsWidth,
+                        height: 500,
+                        width: 'auto',
                     }}
                 />
             </div>

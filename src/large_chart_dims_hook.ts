@@ -9,20 +9,20 @@ export default function useLargeChartDimensions() {
     const viewportDimensions = useViewportDimensions();
     let { height: eChartsHeight, width: eChartsWidth } = viewportDimensions;
     // mobile
-    eChartsWidth = 300;
-    eChartsHeight = 300;
+    eChartsWidth = viewportDimensions.width * 0.95;
+    eChartsHeight = viewportDimensions.height * 0.7;
     if (viewportDimensions.width >= SCREEN_SMALL) {
-        eChartsWidth = viewportDimensions.width * 0.95;
-        eChartsHeight = viewportDimensions.height * 0.7;
+        eChartsWidth = 600;
+        eChartsHeight = 500;
     }
-    // if (viewportDimensions.width >= SCREEN_MEDIUM) {
-    //     eChartsHeight = 700;
-    //     eChartsWidth = 750;
-    // }
-    // if (viewportDimensions.width >= SCREEN_LARGE) {
-    //     eChartsWidth = viewportDimensions.width * 0.8;
-    //     eChartsHeight = viewportDimensions.height * 0.5;
-    // }
+    if (viewportDimensions.width >= SCREEN_MEDIUM) {
+        eChartsWidth = 750;
+        eChartsHeight = 600;
+    }
+    if (viewportDimensions.width >= SCREEN_LARGE) {
+        eChartsWidth = 950;
+        eChartsHeight = 700;
+    }
     return { eChartsWidth, eChartsHeight };
 }
 export function useViewportDimensions() {
@@ -42,8 +42,8 @@ export function useViewportDimensions() {
 export function getViewportDimensions(): ViewportDimensions {
     if (typeof window === 'undefined') {
         return {
-            width: 400,
-            height: 600,
+            width: 380,
+            height: 350,
         };
     }
     const { innerWidth: width, innerHeight: height } = window;

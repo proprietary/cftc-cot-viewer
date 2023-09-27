@@ -5,8 +5,7 @@ import { SocrataApi } from "./socrata_api";
 import { parseAvailableContractsJSON } from "./parseAvailableContractsJSON";
 
 export async function FetchAllAvailableContracts(): Promise<ContractsTree> {
-    if (process.env.NODE_ENV === 'development') {
-        console.info('Getting statically generated contracts during debug');
+    if (true || process.env.NODE_ENV === 'development') {
         // let tff = await (await fetch('/available-contracts/financial-futures.json')).json();
         // let disaggregated = await (await fetch('/available-contracts/disaggregated.json')).json();
         // let legacy = await (await fetch('/available-contracts/legacy.json')).json();

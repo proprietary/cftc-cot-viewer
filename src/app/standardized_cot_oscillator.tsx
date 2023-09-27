@@ -1,16 +1,16 @@
-'use client';
+'use client'
 
 import React from 'react';
 import * as echarts from 'echarts/core';
 import EChartsReactCore from 'echarts-for-react/lib/core';
 import { TitleComponent, GridComponent, LegendComponent, TooltipComponent, ToolboxComponent, DataZoomComponent, VisualMapComponent, TimelineComponent } from 'echarts/components';
 import type { TitleComponentOption, GridComponentOption, TooltipComponentOption, ToolboxComponentOption, DataZoomComponentOption, AriaComponentOption, } from 'echarts/components';
-import type { BarSeriesOption } from 'echarts/charts';
+import type { BarSeriesOption, LineSeriesOption } from 'echarts/charts';
 import { BarChart, LineChart } from 'echarts/charts';
 import { SVGRenderer, CanvasRenderer } from 'echarts/renderers';
 import { IDisaggregatedFuturesCOTReport, IFinancialFuturesCOTReport, ILegacyFuturesCOTReport, ITraderCategory } from '@/socrata_cot_report';
 import { rollingMinMaxScaler, rollingMinMaxScalerOptimized, rollingQuantileNormalization, rollingRobustScaler, rollingZscore } from '@/lib/chart_math';
-import { SCREEN_LARGE, SCREEN_MEDIUM, SCREEN_SMALL, usePrevious } from '@/util';
+import { SCREEN_2XLARGE, SCREEN_LARGE, SCREEN_MEDIUM, SCREEN_SMALL, usePrevious } from '@/util';
 import { useViewportDimensions } from '@/large_chart_dims_hook';
 import { PriceBar } from '@/common_types';
 import useLargeChartDimensions from '@/large_chart_dims_hook';
@@ -102,7 +102,7 @@ const yAxisLabels: Record<NormalizationMethod, (label: string) => string> = {
     [NormalizationMethod.None]: label => label,
 }
 
-type ECOption = echarts.ComposeOption<BarSeriesOption | DataZoomComponentOption | AriaComponentOption | GridComponentOption | TitleComponentOption | ToolboxComponentOption | TooltipComponentOption>;
+type ECOption = echarts.ComposeOption<BarSeriesOption | LineSeriesOption | DataZoomComponentOption | AriaComponentOption | GridComponentOption | TitleComponentOption | ToolboxComponentOption | TooltipComponentOption>;
 
 export default function StandardizedCotOscillator(
     {
@@ -122,9 +122,6 @@ export default function StandardizedCotOscillator(
     },
 ) {
     const echartsRef = React.useRef<EChartsReactCore | null>(null);
-
-    // compute breakpoints for the ECharts instance; making it responsive
-    let { eChartsWidth, eChartsHeight } = useLargeChartDimensions();
 
     let legendSelected = React.useRef<{ [name: string]: boolean } | null>(null);
     let rememberedDataZoom = React.useRef<[number, number] | null>(null);
@@ -170,6 +167,7 @@ export default function StandardizedCotOscillator(
     }, [plottedColumns, lookback, normalizationMethod]);
 
     const genEchartsOption = React.useMemo((): ECOption => {
+        const pds = generatePriceDataSeries(priceData ?? []);
         let dst: ECOption = {
             aria: {
                 enabled: true,
@@ -198,9 +196,14 @@ export default function StandardizedCotOscillator(
                     filterMode: 'filter',
                     // start: 100 * Math.max(0, xAxisDates.length - defaultWeeksZoom) / xAxisDates.length,
                     // ...dataZoomInner,
+                    start: rememberedDataZoom.current != null ? rememberedDataZoom.current[0] : 100 * Math.max(0, xAxisDates.length - defaultWeeksZoom) / xAxisDates.length,
+                    end: rememberedDataZoom.current != null ? rememberedDataZoom.current[1] : 100,
                 }
             ],
-            series: [],
+            series: [
+                ...computeSeries(),
+                ...(pds?.series ?? []),
+            ],
             xAxis: [
                 {
                     type: 'category',
@@ -213,6 +216,7 @@ export default function StandardizedCotOscillator(
                     id: 'cot-net-positioning-axis',
                     type: 'value',
                     nameRotate: 90,
+                    name: yAxisLabels[normalizationMethod](yAxisLabel),
                     nameTextStyle: {
                         verticalAlign: 'middle',
                         align: 'center',
@@ -220,6 +224,13 @@ export default function StandardizedCotOscillator(
                     nameLocation: 'middle',
                     nameGap: 40,
                     scale: true,
+                },
+                {
+                    id: 'underlying-price-axis',
+                    type: 'value',
+                    name: 'Price',
+                    scale: true,
+                    show: priceData != null && priceData.length > 0,
                 },
             ],
             title: {
@@ -229,7 +240,7 @@ export default function StandardizedCotOscillator(
             },
         };
         return dst;
-    }, [xAxisDates]);
+    }, [xAxisDates, title, plottedColumns, normalizationMethod, lookback]);
 
     // update price chart if available
     React.useEffect(() => {
@@ -254,31 +265,7 @@ export default function StandardizedCotOscillator(
             })
     }, [priceData]);
 
-    // update series
     React.useEffect(() => {
-        const pds = generatePriceDataSeries(priceData ?? []);
-        echartsRef.current?.getEchartsInstance().setOption({
-            series: [
-                ...computeSeries(),
-                ...(pds?.series ?? []),
-            ],
-            yAxis: [
-                {
-                    id: 'cot-net-positioning-axis',
-                    name: yAxisLabels[normalizationMethod](yAxisLabel),
-                },
-                ...(pds?.yAxis ?? {}),
-            ],
-            dataZoom: [
-                {
-                    id: 'cot-horizontal-zoom',
-                    start: rememberedDataZoom.current != null ? rememberedDataZoom.current[0] : 100 * Math.max(0, xAxisDates.length - defaultWeeksZoom) / xAxisDates.length,
-                    end: rememberedDataZoom.current != null ? rememberedDataZoom.current[1] : 100,
-                },
-            ],
-            ...(eChartsWidth > SCREEN_SMALL ? { title: { show: true } } : {})
-        });
-
         // preserve legend selections
         if (legendSelected.current != null) {
             const ec = echartsRef.current?.getEchartsInstance();
@@ -293,14 +280,11 @@ export default function StandardizedCotOscillator(
         }
 
         // handle sizing and responsiveness
-        echartsRef.current?.getEchartsInstance().resize();
-    }, [plottedColumns, lookback, normalizationMethod, eChartsHeight, eChartsWidth]);
+        // required after loading from SSR or else charts will be wrongly sized
+        // kind of a hack 🙄
+        // echartsRef.current?.getEchartsInstance().resize({ width: eChartsWidth, height: eChartsHeight });
 
-    // required after loading from SSR or else charts will be wrongly sized
-    // kind of a hack 🙄
-    React.useEffect(() => {
-        echartsRef.current?.getEchartsInstance().resize();
-    }, []);
+    }, [normalizationMethod, lookback]);
 
     const handleChangeZsLookback = React.useCallback((ev: React.ChangeEvent<HTMLInputElement>) => {
         const n = parseInt(ev.target.value);
@@ -314,7 +298,7 @@ export default function StandardizedCotOscillator(
 
     return (
         <div className="w-full">
-            <div className="m-2 flex items-center space-x-4">
+            <div className="m-2 flex flex-wrap items-center space-x-4 overflow-x-auto">
                 <label className="flex items-center space-x-2">
                     <input type="radio" value={NormalizationMethod.RobustScaler}
                         checked={normalizationMethod === NormalizationMethod.RobustScaler}
@@ -352,8 +336,8 @@ export default function StandardizedCotOscillator(
                 </label>
             </div>
 
-            <div className="m-2 flex items-center">
-                <label className="flex flex-col w-full">
+            <div className="m-2 flex items-center overflow-x-auto max-w-full">
+                <label className="flex flex-col w-3/4">
                     <div>
                         Lookback number of weeks for normalization
                         <strong className="px-2">
@@ -367,28 +351,31 @@ export default function StandardizedCotOscillator(
                         onChange={handleChangeZsLookback} />
                 </label>
             </div>
-            <div className="m-2">
-                <EChartsReactCore
-                    echarts={echarts}
-                    ref={(ref) => { echartsRef.current = ref; }}
-                    showLoading={loading || plottedColumns == null}
-                    option={genEchartsOption}
-                    theme={"dark"}
-                    onEvents={{
-                        'datazoom': (ev: any) => {
-                            rememberedDataZoom.current = [ev.start, ev.end];
-                        },
-                        'legendselectchanged': (ev: any) => {
-                            legendSelected.current = ev.selected;
-                        },
-                    }} />
-            </div>
+            <EChartsReactCore
+                echarts={echarts}
+                ref={(ref) => { echartsRef.current = ref; }}
+                showLoading={loading || plottedColumns == null}
+                option={genEchartsOption}
+                theme={"dark"}
+                onEvents={{
+                    'datazoom': (ev: any) => {
+                        rememberedDataZoom.current = [ev.start, ev.end];
+                    },
+                    'legendselectchanged': (ev: any) => {
+                        legendSelected.current = ev.selected;
+                    },
+                }}
+                style={{
+                    width: 'auto',
+                    height: 500,
+                }}
+            />
         </div>
     );
 }
 
 const generatePriceDataSeries = (priceData: readonly PriceBar[]) => {
-    let dst = {
+    let dst: { series: LineSeriesOption[], yAxis: any[] } = {
         yAxis: [
             {
                 id: 'underlying-price-axis',

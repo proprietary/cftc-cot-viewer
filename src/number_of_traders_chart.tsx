@@ -9,7 +9,6 @@ import { TitleComponent, LegendComponent, TooltipComponent, DataZoomComponent } 
 import { SCREEN_LARGE, SCREEN_SMALL, formatDateYYYYMMDD } from './util';
 import { useViewportDimensions } from './large_chart_dims_hook';
 import { IAnyCOTReportType, IDisaggregatedFuturesCOTReport, IFinancialFuturesCOTReport, ILegacyFuturesCOTReport } from './socrata_cot_report';
-import useLargeChartDimensions from './large_chart_dims_hook';
 
 echarts.use([BarChart, TitleComponent, LegendComponent, DataZoomComponent, TooltipComponent, TooltipComponent])
 
@@ -125,7 +124,6 @@ export default function NumberOfTradersChart(
             series: genSeries(),
         };
     }, [reports]);
-    const {eChartsWidth, eChartsHeight} = useLargeChartDimensions();
     return (
         <div className="my-2">
             <EChartsReactCore
@@ -134,8 +132,8 @@ export default function NumberOfTradersChart(
                 theme={'dark'}
                 option={genOpt()}
                 style={{
-                    width: eChartsWidth,
-                    height: eChartsHeight,
+                    width: 'auto',
+                    height: 500,
                 }}
             />
         </div>

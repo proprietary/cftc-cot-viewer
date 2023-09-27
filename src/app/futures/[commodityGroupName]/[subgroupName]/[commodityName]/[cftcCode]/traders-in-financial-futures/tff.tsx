@@ -46,6 +46,23 @@ export default function Tff({
     }, [contract]);
     return (
         <div className="grid grid-cols-1 gap-4 mx-2">
+            <div className="my-2 h-screen w-full">
+                <h2 className="text-2xl text-center p-4">Net Positioning</h2>
+                <StandardizedCotOscillator
+                    yAxisLabel='Net Exposure as % Open Interest'
+                    plottedColumns={[
+                        { name: 'Dealers', data: reports.map(x => (x.dealer_positions_long_all - x.dealer_positions_short_all) / x.open_interest_all) },
+                        { name: 'Asset Managers', data: reports.map(x => (x.asset_mgr_positions_long - x.asset_mgr_positions_short) / x.open_interest_all) },
+                        { name: 'Leveraged Funds', data: reports.map(x => (x.lev_money_positions_long - x.lev_money_positions_short) / x.open_interest_all) },
+                        { name: 'Other Reportables', data: reports.map(x => (x.other_rept_positions_long - x.other_rept_positions_short) / x.open_interest_all) },
+                        { name: 'Non-Reportables', data: reports.map(x => (x.nonrept_positions_long_all - x.nonrept_positions_short_all) / x.open_interest_all) },
+                    ]}
+                    xAxisDates={reports.map(x => formatDateYYYYMMDD(new Date(x.timestamp)))}
+                    title={reports.at(0)?.contract_market_name}
+                    loading={isLoading || reports.length === 0}
+                    priceData={priceBars}
+                />
+            </div>
             <div className="my-3">
                 <TabularCOTViewer reports={reports}
                     columns={[
@@ -119,23 +136,6 @@ export default function Tff({
                             changeInShorts: 'change_in_nonrept_short_all',
                         },
                     ]}
-                />
-            </div>
-            <div className="my-2 h-screen mx-auto">
-                <h2 className="text-2xl text-center p-4">Net Positioning</h2>
-                <StandardizedCotOscillator
-                    yAxisLabel='Net Exposure as % Open Interest'
-                    plottedColumns={[
-                        { name: 'Dealers', data: reports.map(x => (x.dealer_positions_long_all - x.dealer_positions_short_all) / x.open_interest_all) },
-                        { name: 'Asset Managers', data: reports.map(x => (x.asset_mgr_positions_long - x.asset_mgr_positions_short) / x.open_interest_all) },
-                        { name: 'Leveraged Funds', data: reports.map(x => (x.lev_money_positions_long - x.lev_money_positions_short) / x.open_interest_all) },
-                        { name: 'Other Reportables', data: reports.map(x => (x.other_rept_positions_long - x.other_rept_positions_short) / x.open_interest_all) },
-                        { name: 'Non-Reportables', data: reports.map(x => (x.nonrept_positions_long_all - x.nonrept_positions_short_all) / x.open_interest_all) },
-                    ]}
-                    xAxisDates={reports.map(x => formatDateYYYYMMDD(new Date(x.timestamp)))}
-                    title={reports.at(0)?.contract_market_name}
-                    loading={isLoading || reports.length === 0}
-                    priceData={priceBars}
                 />
             </div>
             <div className="my-2 min-h-screen">
