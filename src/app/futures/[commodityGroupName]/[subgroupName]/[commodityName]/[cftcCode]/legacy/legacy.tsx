@@ -65,7 +65,7 @@ export default function Legacy({
             <h1 className="text-4xl text-center p-5 antialiased">
                 {contract.contractMarketName}
             </h1>
-            <div className="my-2 h-screen w-full">
+            <div className="my-2">
                 <StandardizedCotOscillator
                     yAxisLabel="Net Exposure as % Open Interest"
                     plottedColumns={[
@@ -147,7 +147,7 @@ export default function Legacy({
                     ]}
                 />
             </div>
-            <div className="my-2 min-h-screen">
+            <div className="my-2">
                 <h2 className="text-2xl text-center p-4">
                     Long and Short Open Interest
                 </h2>
@@ -183,7 +183,7 @@ export default function Legacy({
                     ]}
                 />
             </div>
-            <div className="my-2 min-h-screen h-screen">
+            <div className="my-2">
                 <div className="text-2xl text-center p-4">
                     Changes in Commitments over N weeks
                 </div>
@@ -208,7 +208,7 @@ export default function Legacy({
                     ]}
                 />
             </div>
-            <div className="my-2 min-h-screen">
+            <div className="my-2">
                 <div className="text-2xl text-center p-4">
                     Changes in Commitments over N weeks (normalized)
                 </div>
@@ -234,7 +234,7 @@ export default function Legacy({
                     ]}
                 />
             </div>
-            <div className="my-2 min-h-screen">
+            <div className="my-2">
                 <div className="text-2xl text-center p-4">
                     Number of Traders
                 </div>
