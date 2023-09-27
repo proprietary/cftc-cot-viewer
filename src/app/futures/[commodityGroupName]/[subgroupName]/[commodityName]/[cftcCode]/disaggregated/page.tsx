@@ -3,8 +3,6 @@ import Disaggregated from "./disaggregated";
 import { FetchAllAvailableContracts } from "@/lib/fetchAvailableContracts";
 import Breadcrumbs from "@/components/breadcrumbs";
 import { allCapsToSlug } from "@/lib/cftc_api_utils";
-import { CCTree2, CommodityContractKindVariants } from "@/lib/contracts_tree";
-import { mapToObject } from "@/mapToObject";
 
 export default async function Page({
     params
