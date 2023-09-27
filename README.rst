@@ -11,22 +11,23 @@ The CFTC's data is free and public domain. This software just tries to make it u
 Try it out!
 -----------
 
-👉 Live at `cot.libhack.so <https://cot.libhack.so>`_
+👉  Live at `cot.libhack.so <https://cot.libhack.so>`_  👈
 
 Features
 --------
 
 - Multiple charts dissecting the data in multiple ways:
-  - Net positions: Long Positions minus Short Positions
-  - Net positioning charts divided by percentage of total open interest
-  - Net positioning charts z-scored with a lookback period you can tune with a slider
-  - All three types of reports by the CFTC: Traders in Financial Futures (for e.g., bond and stock index futures), Disaggregated (for agricultural and natural resource commodities), Legacy (all of the above but in a different format)
-  - Visualize changes in positioning over time. You can check how, for example, Leveraged Funds changed positioning on 10Y Treasury futures in the past 2 weeks, 26 weeks, ...
+   - Net positions: Long Positions minus Short Positions
+   - Net positioning charts divided by percentage of total open interest
+   - Net positioning charts z-scored with a lookback period you can tune with a slider
+   - All three types of reports by the CFTC: Traders in Financial Futures (for e.g., bond and stock index futures), Disaggregated (for agricultural and natural resource commodities), Legacy (all of the above but in a different format)
+   - Visualize changes in positioning over time. You can check how, for example, Leveraged Funds changed positioning on 10Y Treasury futures in the past 2 weeks, 26 weeks, ...
 - Emphasis on net position (longs minus shorts)
 - Charts with oscillators showing the degree to which one group of traders is positioned
 - Normalizing lookback periods with Z-scores, Min-Max Scaling, Robust Scaling, Percentile Scaling
 - Some price charts integrated into charts where available (public domain sources)
 - Entirely client-side. Caches COT data to your browser storage to limit requests to the CFTC's API.
+- There is no server-side software required to run, which is great for maintainability and longevity of this project.
 - Free and open source software!
 
 Alternatives
@@ -34,30 +35,35 @@ Alternatives
 
 - `Tradingster <https://www.tradingster.com/cot/futures>`_
 - `Barchart <https://www.barchart.com/forex/commitment-of-traders>`_
+- `Nasdaq Data Link <https://data.nasdaq.com/data/CFTC-commodity-futures-trading-commission-reports/documentation>`_
+- `Cotpricecharts.com <https://cotpricecharts.com/commitmentscurrent/>`_
 
 
 Installation (Advanced)
 -----------------------
 
+This builds as a fully static site, fully client-side.
+
 Requires Node.js and a Node package manager such as `npm`, `yarn` or `pnpm`:
 
 .. code-block:: bash
 
-    $ git clone https://github.com/proprietary/cftc-cot-viewer.git
-    $ cd cftc-cot-viewer.git
-    $ npx next build
+    git clone https://github.com/proprietary/cftc-cot-viewer.git
+    cd cftc-cot-viewer.git
+    npx next build
 
-The static site files will be generated in `out/`. You can serve that directory on a web server directly, or locally, for example, via:
+The static site files will be generated in `out/`. You can serve that directory on a web server directly (I recommend `Caddy <https://caddyserver.com/>`_ or `nginx <https://wiki.archlinux.org/title/Nginx>`_), or locally, for example, via:
 
 .. code-block:: bash
 
-    $ python3 -m http.server -d out
+    python3 -m http.server -d out
 
 ++++++++++++
 Contributing
 ++++++++++++
 
 Built with:
+
 - TypeScript
 - Next.js / React
 - Apache eCharts
