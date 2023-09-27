@@ -60,6 +60,12 @@ Built with:
 - Next.js / React
 - Apache eCharts
 
++++++++++++++
+Documentation
++++++++++++++
+
+- `COT Primer <doc/COT_Primer.rst>`_
+
 License
 -------
 
