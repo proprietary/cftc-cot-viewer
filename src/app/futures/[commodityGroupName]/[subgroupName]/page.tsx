@@ -102,8 +102,8 @@ export async function generateStaticParams({
     for (const [commodityGroupName, subtree] of contractsTree.selectTree({}, ['group', 'commoditySubgroupName']).node.entries()) {
         for (const subgroupName of subtree.node.keys()) {
             dst.push({
-                commodityGroupName: encodeURIComponent(allCapsToSlug(commodityGroupName)),
-                subgroupName: encodeURIComponent(allCapsToSlug(subgroupName)),
+                commodityGroupName: allCapsToSlug(commodityGroupName),
+                subgroupName: allCapsToSlug(subgroupName),
             });
         }
     }

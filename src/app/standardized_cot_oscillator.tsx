@@ -102,7 +102,7 @@ const yAxisLabels: Record<NormalizationMethod, (label: string) => string> = {
     [NormalizationMethod.None]: label => label,
 }
 
-type ECOption = echarts.ComposeOption<BarSeriesOption | DataZoomComponentOption | AriaComponentOption | GridComponentOption | ToolboxComponentOption | TooltipComponentOption>;
+type ECOption = echarts.ComposeOption<BarSeriesOption | DataZoomComponentOption | AriaComponentOption | GridComponentOption | TitleComponentOption | ToolboxComponentOption | TooltipComponentOption>;
 
 export default function StandardizedCotOscillator(
     {
@@ -223,6 +223,7 @@ export default function StandardizedCotOscillator(
                 },
             ],
             title: {
+                show: true,
                 text: title,
                 textStyle: { fontSize: 12 },
             },
@@ -273,8 +274,9 @@ export default function StandardizedCotOscillator(
                     id: 'cot-horizontal-zoom',
                     start: rememberedDataZoom.current != null ? rememberedDataZoom.current[0] : 100 * Math.max(0, xAxisDates.length - defaultWeeksZoom) / xAxisDates.length,
                     end: rememberedDataZoom.current != null ? rememberedDataZoom.current[1] : 100,
-                }
-            ]
+                },
+            ],
+            ...(eChartsWidth > SCREEN_SMALL ? { title: { show: true } } : {})
         });
 
         // preserve legend selections
@@ -290,8 +292,15 @@ export default function StandardizedCotOscillator(
             }
         }
 
+        // handle sizing and responsiveness
         echartsRef.current?.getEchartsInstance().resize();
     }, [plottedColumns, lookback, normalizationMethod, eChartsHeight, eChartsWidth]);
+
+    // required after loading from SSR or else charts will be wrongly sized
+    // kind of a hack 🙄
+    React.useEffect(() => {
+        echartsRef.current?.getEchartsInstance().resize();
+    }, []);
 
     const handleChangeZsLookback = React.useCallback((ev: React.ChangeEvent<HTMLInputElement>) => {
         const n = parseInt(ev.target.value);
@@ -372,10 +381,6 @@ export default function StandardizedCotOscillator(
                         'legendselectchanged': (ev: any) => {
                             legendSelected.current = ev.selected;
                         },
-                    }}
-                    style={{
-                        height: eChartsHeight - 3,
-                        width: eChartsWidth - 11,
                     }} />
             </div>
         </div>

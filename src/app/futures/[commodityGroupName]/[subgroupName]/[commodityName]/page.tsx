@@ -88,17 +88,15 @@ export async function generateStaticParams({
 }: {
     params: { commodityGroupName: string, subgroupName: string },
 }) {
-    if (params.commodityGroupName == null || params.subgroupName == null) return [];
     const contractsTree = await FetchAllAvailableContracts();
-    let a = contractsTree.selectTree({}, ['group', 'commoditySubgroupName']);
     let dst: { commodityGroupName: string, subgroupName: string, commodityName: string }[] = [];
     for (const [commodityGroupName, subtree] of contractsTree.selectTree({}, ['group', 'commoditySubgroupName', 'commodityName']).node.entries()) {
         for (const [subgroupName, subtree2] of subtree.node.entries()) {
             for (const commodityName of subtree2.node.keys()) {
                 dst.push({
-                    commodityGroupName: encodeURIComponent(allCapsToSlug(commodityGroupName)),
-                    subgroupName: encodeURIComponent(allCapsToSlug(subgroupName)),
-                    commodityName: encodeURIComponent(allCapsToSlug(commodityName)),
+                    commodityGroupName: allCapsToSlug(commodityGroupName),
+                    subgroupName: allCapsToSlug(subgroupName),
+                    commodityName: allCapsToSlug(commodityName),
                 });
             }
         }

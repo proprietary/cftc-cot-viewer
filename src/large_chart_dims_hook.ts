@@ -9,12 +9,12 @@ export default function useLargeChartDimensions() {
     const viewportDimensions = useViewportDimensions();
     let { height: eChartsHeight, width: eChartsWidth } = viewportDimensions;
     // mobile
-    eChartsWidth = viewportDimensions.width * 0.95;
-    eChartsHeight = viewportDimensions.height * 0.8;
-    // if (viewportDimensions.width >= SCREEN_SMALL) {
-    //     eChartsWidth = viewportDimensions.width * 0.95;
-    //     eChartsHeight = viewportDimensions.height * 0.7;
-    // }
+    eChartsWidth = 300;
+    eChartsHeight = 300;
+    if (viewportDimensions.width >= SCREEN_SMALL) {
+        eChartsWidth = viewportDimensions.width * 0.95;
+        eChartsHeight = viewportDimensions.height * 0.7;
+    }
     // if (viewportDimensions.width >= SCREEN_MEDIUM) {
     //     eChartsHeight = 700;
     //     eChartsWidth = 750;
@@ -37,7 +37,9 @@ export function useViewportDimensions() {
         };
     }, []);
     return viewportDimensions;
-}export function getViewportDimensions(): ViewportDimensions {
+}
+
+export function getViewportDimensions(): ViewportDimensions {
     if (typeof window === 'undefined') {
         return {
             width: 400,

@@ -29,8 +29,8 @@ export interface ITradersCategoryColumn<T extends IFinancialFuturesCOTReport | I
     tradersSpreading?: FilteredCOTReportOnlyKeysToNumbers<T>,
 }
 
-function fmtThousandsSeparators(num: number): string {
-    return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+function fmtThousandsSeparators(num: number | undefined): string {
+    return num == null ? '' : num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
 }
 
 export default function TabularCOTViewer<T extends IFinancialFuturesCOTReport | IDisaggregatedFuturesCOTReport | ILegacyFuturesCOTReport>({

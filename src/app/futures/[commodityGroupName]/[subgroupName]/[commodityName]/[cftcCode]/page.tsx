@@ -88,9 +88,9 @@ export async function generateStaticParams({
                 for (const contr of subtree3.value) {
                     const cont = Object.values(contr).at(0)!;
                     let intermediate = {
-                        commodityGroupName: encodeURIComponent(allCapsToSlug(commodityGroupName)),
-                        subgroupName: encodeURIComponent(allCapsToSlug(subgroupName)),
-                        commodityName: encodeURIComponent(allCapsToSlug(commodityName)),
+                        commodityGroupName: allCapsToSlug(commodityGroupName),
+                        subgroupName: allCapsToSlug(subgroupName),
+                        commodityName: allCapsToSlug(commodityName),
                         cftcCode: cont.cftcContractMarketCode,
                     };
                     dst.push(intermediate);
