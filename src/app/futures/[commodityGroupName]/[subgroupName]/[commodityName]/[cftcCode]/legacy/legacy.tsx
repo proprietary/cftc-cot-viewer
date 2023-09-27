@@ -46,6 +46,21 @@ export default function Legacy({
     }, [contract]);
     return (
         <div className="grid grid-cols-1 gap-4 mx-2">
+            <h1 className="text-4xl text-center p-5 antialiased">{contract.contractMarketName}</h1>
+            <div className="my-2 h-screen w-full">
+                <StandardizedCotOscillator
+                    yAxisLabel='Net Exposure as % Open Interest'
+                    plottedColumns={[
+                        { name: 'Commercials', data: reports.map(x => (x.comm_positions_long_all - x.comm_positions_short_all) / x.open_interest_all) },
+                        { name: 'Non-Commercials', data: reports.map(x => (x.noncomm_positions_long_all - x.noncomm_positions_short_all) / x.open_interest_all) },
+                        { name: 'Non-Reportables', data: reports.map(x => (x.nonrept_positions_long_all - x.nonrept_positions_short_all) / x.open_interest_all) },
+                    ]}
+                    xAxisDates={reports.map(x => formatDateYYYYMMDD(new Date(x.timestamp)))}
+                    title={reports.at(0)?.contract_market_name}
+                    loading={isLoading || reports.length === 0}
+                    priceData={priceBars}
+                />
+            </div>
             <div className="my-3">
                 <TabularCOTViewer reports={reports}
                     columns={[
@@ -85,21 +100,6 @@ export default function Legacy({
                             changeInShorts: 'change_in_nonrept_short_all',
                         },
                     ]}
-                />
-            </div>
-            <div className="my-2 h-screen mx-auto">
-                <h2 className="text-2xl text-center p-4">Net Positioning</h2>
-                <StandardizedCotOscillator
-                    yAxisLabel='Net Exposure as % Open Interest'
-                    plottedColumns={[
-                        { name: 'Commercials', data: reports.map(x => (x.comm_positions_long_all - x.comm_positions_short_all) / x.open_interest_all) },
-                        { name: 'Non-Commercials', data: reports.map(x => (x.noncomm_positions_long_all - x.noncomm_positions_short_all) / x.open_interest_all) },
-                        { name: 'Non-Reportables', data: reports.map(x => (x.nonrept_positions_long_all - x.nonrept_positions_short_all) / x.open_interest_all) },
-                    ]}
-                    xAxisDates={reports.map(x => formatDateYYYYMMDD(new Date(x.timestamp)))}
-                    title={reports.at(0)?.contract_market_name}
-                    loading={isLoading || reports.length === 0}
-                    priceData={priceBars}
                 />
             </div>
             <div className="my-2 min-h-screen">

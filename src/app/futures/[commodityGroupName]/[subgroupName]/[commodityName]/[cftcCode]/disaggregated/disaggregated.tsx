@@ -46,7 +46,24 @@ export default function Legacy({
     }, [contract]);
     return (
         <div className="grid grid-cols-1 gap-4 mx-2">
-            <div className="my-3">
+            <h1 className="text-4xl text-center p-5 antialiased">{contract.contractMarketName}</h1>
+            <div className="my-2 h-screen w-full">
+                <StandardizedCotOscillator
+                    yAxisLabel='Net Exposure as % Open Interest'
+                    plottedColumns={[
+                        { name: 'Producer/Merchant', data: reports.map(x => (x.prod_merc_positions_long - x.prod_merc_positions_short) / x.open_interest_all) },
+                        { name: 'Swap Dealers', data: reports.map(x => (x.swap_positions_long_all - x.swap__positions_short_all) / x.open_interest_all) },
+                        { name: 'Managed Money', data: reports.map(x => (x.m_money_positions_long_all - x.m_money_positions_short_all) / x.open_interest_all) },
+                        { name: 'Other Reportables', data: reports.map(x => (x.other_rept_positions_long - x.other_rept_positions_short)/x.open_interest_all), },
+                        { name: 'Non-Reportables', data: reports.map(x => (x.nonrept_positions_long_all - x.nonrept_positions_short_all)/x.open_interest_all), },
+                    ]}
+                    xAxisDates={reports.map(x => formatDateYYYYMMDD(new Date(x.timestamp)))}
+                    title={reports.at(0)?.contract_market_name}
+                    loading={isLoading || reports.length === 0}
+                    priceData={priceBars}
+                />
+            </div>
+            <div className="my-5 min-h-screen">
                 <TabularCOTViewer reports={reports}
                     columns={[
                         {
@@ -111,23 +128,6 @@ export default function Legacy({
                     ]}
                 />
             </div>
-            <div className="my-2 h-screen mx-auto">
-                <h2 className="text-2xl text-center p-4">Net Positioning</h2>
-                <StandardizedCotOscillator
-                    yAxisLabel='Net Exposure as % Open Interest'
-                    plottedColumns={[
-                        { name: 'Producer/Merchant', data: reports.map(x => (x.prod_merc_positions_long - x.prod_merc_positions_short) / x.open_interest_all) },
-                        { name: 'Swap Dealers', data: reports.map(x => (x.swap_positions_long_all - x.swap__positions_short_all) / x.open_interest_all) },
-                        { name: 'Managed Money', data: reports.map(x => (x.m_money_positions_long_all - x.m_money_positions_short_all) / x.open_interest_all) },
-                        { name: 'Other Reportables', data: reports.map(x => (x.other_rept_positions_long - x.other_rept_positions_short)/x.open_interest_all), },
-                        { name: 'Non-Reportables', data: reports.map(x => (x.nonrept_positions_long_all - x.nonrept_positions_short_all)/x.open_interest_all), },
-                    ]}
-                    xAxisDates={reports.map(x => formatDateYYYYMMDD(new Date(x.timestamp)))}
-                    title={reports.at(0)?.contract_market_name}
-                    loading={isLoading || reports.length === 0}
-                    priceData={priceBars}
-                />
-            </div>
             <div className="my-2 min-h-screen">
                 <h2 className="text-2xl text-center p-4">
                     Long and Short Open Interest
@@ -149,7 +149,7 @@ export default function Legacy({
                         { name: 'Non-Reportables', column: 'nonrept_positions_short_all', },
                     ]} />
             </div>
-            <div className="my-2 min-h-screen h-screen">
+            <div className="my-5 min-h-screen h-screen">
                 <div className="text-2xl text-center p-4">
                     Changes in Commitments over N weeks
                 </div>

@@ -46,8 +46,8 @@ export default function Tff({
     }, [contract]);
     return (
         <div className="grid grid-cols-1 gap-4 mx-2">
+            <h1 className="text-4xl text-center p-5 antialiased">{contract.contractMarketName}</h1>
             <div className="my-2 h-screen w-full">
-                <h2 className="text-2xl text-center p-4">Net Positioning</h2>
                 <StandardizedCotOscillator
                     yAxisLabel='Net Exposure as % Open Interest'
                     plottedColumns={[
@@ -63,7 +63,7 @@ export default function Tff({
                     priceData={priceBars}
                 />
             </div>
-            <div className="my-3">
+            <div className="my-3 min-h-screen">
                 <TabularCOTViewer reports={reports}
                     columns={[
                         {
@@ -159,7 +159,7 @@ export default function Tff({
 
                     ]} />
             </div>
-            <div className="my-2 min-h-screen h-screen">
+            <div className="my-2 min-h-screen">
                 <div className="text-2xl text-center p-4">
                     Changes in Commitments over N weeks
                 </div>
