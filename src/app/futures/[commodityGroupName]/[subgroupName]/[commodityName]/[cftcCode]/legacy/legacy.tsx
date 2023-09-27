@@ -1,68 +1,113 @@
 'use client'
 
-import OpenInterestChangesNormalizedChart from '@/app/open_interest_changes_normalized_chart';
-import StandardizedCotOscillator from '@/app/standardized_cot_oscillator';
-import TabularCOTViewer from '@/app/tabular_cot_viewer';
-import { CachingCFTCApi } from '@/lib/cftc_api';
-import { CommodityCodes, StaticCommodityInfo } from '@/lib/cftc_codes_mapping';
-import CommitmentChangesChart from '@/commitment_changes_chart';
-import { CommodityInfoService } from '@/lib/commodity_info';
-import { CFTCReportType, PriceBar } from '@/common_types';
-import { CommodityContractKind } from '@/lib/CommodityContractKind';
-import LongShortOIChart from '@/long_short_oi_chart';
-import NumberOfTradersChart from '@/number_of_traders_chart';
-import { IAnyCOTReportType, IDisaggregatedFuturesCOTReport, IFinancialFuturesCOTReport, ILegacyFuturesCOTReport } from '@/socrata_cot_report';
-import { formatDateYYYYMMDD } from '@/util';
-import React from 'react';
+import OpenInterestChangesNormalizedChart from '@/app/open_interest_changes_normalized_chart'
+import StandardizedCotOscillator from '@/app/standardized_cot_oscillator'
+import TabularCOTViewer from '@/app/tabular_cot_viewer'
+import { CachingCFTCApi } from '@/lib/cftc_api'
+import { CommodityCodes, StaticCommodityInfo } from '@/lib/cftc_codes_mapping'
+import CommitmentChangesChart from '@/commitment_changes_chart'
+import { CommodityInfoService } from '@/lib/commodity_info'
+import { CFTCReportType, PriceBar } from '@/common_types'
+import { CommodityContractKind } from '@/lib/CommodityContractKind'
+import LongShortOIChart from '@/long_short_oi_chart'
+import NumberOfTradersChart from '@/number_of_traders_chart'
+import {
+    IAnyCOTReportType,
+    IDisaggregatedFuturesCOTReport,
+    IFinancialFuturesCOTReport,
+    ILegacyFuturesCOTReport,
+} from '@/socrata_cot_report'
+import { formatDateYYYYMMDD } from '@/util'
+import React from 'react'
 
 export default function Legacy({
     contract,
 }: {
-    contract: CommodityContractKind,
+    contract: CommodityContractKind
 }) {
-    const [reports, setReports] = React.useState<Array<ILegacyFuturesCOTReport>>([]);
-    const [priceBars, setPriceBars] = React.useState<PriceBar[]>([]);
-    const [isLoading, setIsLoading] = React.useState<boolean>(true);
+    const [reports, setReports] = React.useState<
+        Array<ILegacyFuturesCOTReport>
+    >([])
+    const [priceBars, setPriceBars] = React.useState<PriceBar[]>([])
+    const [isLoading, setIsLoading] = React.useState<boolean>(true)
     React.useEffect(() => {
-        (async () => {
-            setIsLoading(true);
-            const cftcApi = new CachingCFTCApi();
-            const reportsResult = await cftcApi.requestDateRange({
+        ;(async () => {
+            setIsLoading(true)
+            const cftcApi = new CachingCFTCApi()
+            const reportsResult = (await cftcApi.requestDateRange({
                 cftcContractMarketCode: contract.cftcContractMarketCode,
                 reportType: CFTCReportType.Legacy,
-                startDate: new Date(Math.min(new Date(2006, 0, 1).getTime(), Date.parse(contract.oldestReportDate))),
+                startDate: new Date(
+                    Math.min(
+                        new Date(2006, 0, 1).getTime(),
+                        Date.parse(contract.oldestReportDate)
+                    )
+                ),
                 endDate: new Date(),
-            }) as ILegacyFuturesCOTReport[];
-            setReports(reportsResult);
+            })) as ILegacyFuturesCOTReport[]
+            setReports(reportsResult)
 
-            const info = StaticCommodityInfo.lookup(contract);
+            const info = StaticCommodityInfo.lookup(contract)
             if (info && info.priceFeeds.length > 0) {
-                const firstPriceFeed = info.priceFeeds.at(0)!;
-                const bars = await (new CommodityInfoService()).requestPriceFeed(contract.cftcCommodityCode, firstPriceFeed, reportsResult.map(x => new Date(x.timestamp)));
-                setPriceBars(bars);
+                const firstPriceFeed = info.priceFeeds.at(0)!
+                const bars = await new CommodityInfoService().requestPriceFeed(
+                    contract.cftcCommodityCode,
+                    firstPriceFeed,
+                    reportsResult.map((x) => new Date(x.timestamp))
+                )
+                setPriceBars(bars)
             }
-            setIsLoading(false);
-        })();
-    }, [contract]);
+            setIsLoading(false)
+        })()
+    }, [contract])
     return (
         <div className="grid grid-cols-1 gap-4 mx-2">
-            <h1 className="text-4xl text-center p-5 antialiased">{contract.contractMarketName}</h1>
+            <h1 className="text-4xl text-center p-5 antialiased">
+                {contract.contractMarketName}
+            </h1>
             <div className="my-2 h-screen w-full">
                 <StandardizedCotOscillator
-                    yAxisLabel='Net Exposure as % Open Interest'
+                    yAxisLabel="Net Exposure as % Open Interest"
                     plottedColumns={[
-                        { name: 'Commercials', data: reports.map(x => (x.comm_positions_long_all - x.comm_positions_short_all) / x.open_interest_all) },
-                        { name: 'Non-Commercials', data: reports.map(x => (x.noncomm_positions_long_all - x.noncomm_positions_short_all) / x.open_interest_all) },
-                        { name: 'Non-Reportables', data: reports.map(x => (x.nonrept_positions_long_all - x.nonrept_positions_short_all) / x.open_interest_all) },
+                        {
+                            name: 'Commercials',
+                            data: reports.map(
+                                (x) =>
+                                    (x.comm_positions_long_all -
+                                        x.comm_positions_short_all) /
+                                    x.open_interest_all
+                            ),
+                        },
+                        {
+                            name: 'Non-Commercials',
+                            data: reports.map(
+                                (x) =>
+                                    (x.noncomm_positions_long_all -
+                                        x.noncomm_positions_short_all) /
+                                    x.open_interest_all
+                            ),
+                        },
+                        {
+                            name: 'Non-Reportables',
+                            data: reports.map(
+                                (x) =>
+                                    (x.nonrept_positions_long_all -
+                                        x.nonrept_positions_short_all) /
+                                    x.open_interest_all
+                            ),
+                        },
                     ]}
-                    xAxisDates={reports.map(x => formatDateYYYYMMDD(new Date(x.timestamp)))}
+                    xAxisDates={reports.map((x) =>
+                        formatDateYYYYMMDD(new Date(x.timestamp))
+                    )}
                     title={reports.at(0)?.contract_market_name}
                     loading={isLoading || reports.length === 0}
                     priceData={priceBars}
                 />
             </div>
             <div className="my-3">
-                <TabularCOTViewer reports={reports}
+                <TabularCOTViewer
+                    reports={reports}
                     columns={[
                         {
                             name: 'Commercials',
@@ -109,15 +154,34 @@ export default function Legacy({
                 <LongShortOIChart
                     data={reports}
                     longCols={[
-                        { name: 'Commercials', column: 'comm_positions_long_all', },
-                        { name: 'Non-Commercials', column: 'noncomm_positions_long_all', },
-                        { name: 'Non-Reportables', column: 'nonrept_positions_long_all', },
+                        {
+                            name: 'Commercials',
+                            column: 'comm_positions_long_all',
+                        },
+                        {
+                            name: 'Non-Commercials',
+                            column: 'noncomm_positions_long_all',
+                        },
+                        {
+                            name: 'Non-Reportables',
+                            column: 'nonrept_positions_long_all',
+                        },
                     ]}
                     shortCols={[
-                        { name: 'Commercials', column: 'comm_positions_short_all', },
-                        { name: 'Non-Commercials', column: 'noncomm_positions_short_all', },
-                        { name: 'Non-Reportables', column: 'nonrept_positions_short_all', },
-                    ]} />
+                        {
+                            name: 'Commercials',
+                            column: 'comm_positions_short_all',
+                        },
+                        {
+                            name: 'Non-Commercials',
+                            column: 'noncomm_positions_short_all',
+                        },
+                        {
+                            name: 'Non-Reportables',
+                            column: 'nonrept_positions_short_all',
+                        },
+                    ]}
+                />
             </div>
             <div className="my-2 min-h-screen h-screen">
                 <div className="text-2xl text-center p-4">
@@ -125,25 +189,23 @@ export default function Legacy({
                 </div>
                 <CommitmentChangesChart
                     dataFrame={reports}
-                    cols={
-                        [
-                            {
-                                name: 'Commercials',
-                                longs: 'comm_positions_long_all',
-                                shorts: 'comm_positions_short_all',
-                            },
-                            {
-                                name: 'Non-Commercials',
-                                longs: 'noncomm_positions_long_all',
-                                shorts: 'noncomm_positions_short_all',
-                            },
-                            {
-                                name: 'Non-Reportables',
-                                longs: 'nonrept_positions_long_all',
-                                shorts: 'nonrept_positions_short_all',
-                            },
-                        ]
-                    }
+                    cols={[
+                        {
+                            name: 'Commercials',
+                            longs: 'comm_positions_long_all',
+                            shorts: 'comm_positions_short_all',
+                        },
+                        {
+                            name: 'Non-Commercials',
+                            longs: 'noncomm_positions_long_all',
+                            shorts: 'noncomm_positions_short_all',
+                        },
+                        {
+                            name: 'Non-Reportables',
+                            longs: 'nonrept_positions_long_all',
+                            shorts: 'nonrept_positions_short_all',
+                        },
+                    ]}
                 />
             </div>
             <div className="my-2 min-h-screen">
@@ -178,23 +240,20 @@ export default function Legacy({
                 </div>
                 <NumberOfTradersChart
                     reports={reports}
-                    cols={
-                        [
-                            {
-                                name: 'Commercials',
-                                n_traders_long: 'traders_comm_long_all',
-                                n_traders_short: 'traders_comm_short_all',
-                            },
-                            {
-                                name: 'Non-Commercials',
-                                n_traders_long: 'traders_noncomm_long_all',
-                                n_traders_short: 'traders_noncomm_short_all',
-                            },
-                        ]
-                    }
+                    cols={[
+                        {
+                            name: 'Commercials',
+                            n_traders_long: 'traders_comm_long_all',
+                            n_traders_short: 'traders_comm_short_all',
+                        },
+                        {
+                            name: 'Non-Commercials',
+                            n_traders_long: 'traders_noncomm_long_all',
+                            n_traders_short: 'traders_noncomm_short_all',
+                        },
+                    ]}
                 />
             </div>
-
         </div>
     )
 }

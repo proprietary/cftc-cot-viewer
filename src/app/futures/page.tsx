@@ -1,15 +1,18 @@
-import { allCapsToSlug, allCapsToTitle, slugToTitle } from "@/lib/cftc_api_utils";
-import { fetchAllAvailableContracts } from "@/lib/socrata_api";
-import GroupTree from "./group_tree";
-import Link from "next/link";
-import { FetchAllAvailableContracts } from "@/lib/fetchAvailableContracts";
-import Breadcrumbs from "@/components/breadcrumbs";
+import {
+    allCapsToSlug,
+    allCapsToTitle,
+    slugToTitle,
+} from '@/lib/cftc_api_utils'
+import { fetchAllAvailableContracts } from '@/lib/socrata_api'
+import GroupTree from './group_tree'
+import Link from 'next/link'
+import { FetchAllAvailableContracts } from '@/lib/fetchAvailableContracts'
+import Breadcrumbs from '@/components/breadcrumbs'
 
 export default async function Page() {
-    const contractsTree = await FetchAllAvailableContracts();
+    const contractsTree = await FetchAllAvailableContracts()
     return (
         <div className="flex flex-col min-h-screen mx-auto w-11/12">
-
             <Breadcrumbs params={{}} />
 
             <h1 className="text-2xl antialiased my-5">Futures</h1>
@@ -26,5 +29,5 @@ export default async function Page() {
                 )
             })}
         </div>
-    );
+    )
 }

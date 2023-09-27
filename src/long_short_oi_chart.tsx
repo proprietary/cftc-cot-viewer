@@ -1,96 +1,134 @@
-'use client';
+'use client'
 
-import React from 'react';
-import * as echarts from 'echarts/core';
-import EChartsReactCore from 'echarts-for-react/lib/core';
-import type { LineSeriesOption } from 'echarts/charts';
-import { LineChart, } from 'echarts/charts';
-import type { TooltipComponentOption, TitleComponentOption, LegendComponentOption, DataZoomComponentOption, GridComponentOption, DatasetComponentOption, ToolboxComponentOption } from 'echarts/components';
-import { DataZoomComponent, DataZoomSliderComponent, DatasetComponent, LegendComponent, TitleComponent, ToolboxComponent, TooltipComponent } from 'echarts/components';
-import { LHAssert, SCREEN_LARGE, SCREEN_SMALL, formatDateYYYYMMDD } from './util';
-import { IFinancialFuturesCOTReport, IAnyCOTReportType, IDisaggregatedFuturesCOTReport, ILegacyFuturesCOTReport } from './socrata_cot_report';
+import React from 'react'
+import * as echarts from 'echarts/core'
+import EChartsReactCore from 'echarts-for-react/lib/core'
+import type { LineSeriesOption } from 'echarts/charts'
+import { LineChart } from 'echarts/charts'
+import type {
+    TooltipComponentOption,
+    TitleComponentOption,
+    LegendComponentOption,
+    DataZoomComponentOption,
+    GridComponentOption,
+    DatasetComponentOption,
+    ToolboxComponentOption,
+} from 'echarts/components'
+import {
+    DataZoomComponent,
+    DataZoomSliderComponent,
+    DatasetComponent,
+    LegendComponent,
+    TitleComponent,
+    ToolboxComponent,
+    TooltipComponent,
+} from 'echarts/components'
+import {
+    LHAssert,
+    SCREEN_LARGE,
+    SCREEN_SMALL,
+    formatDateYYYYMMDD,
+} from './util'
+import {
+    IFinancialFuturesCOTReport,
+    IAnyCOTReportType,
+    IDisaggregatedFuturesCOTReport,
+    ILegacyFuturesCOTReport,
+} from './socrata_cot_report'
 
-echarts.use([TitleComponent, LineChart, DatasetComponent, TooltipComponent, LegendComponent, DataZoomComponent, DataZoomSliderComponent, ToolboxComponent]);
+echarts.use([
+    TitleComponent,
+    LineChart,
+    DatasetComponent,
+    TooltipComponent,
+    LegendComponent,
+    DataZoomComponent,
+    DataZoomSliderComponent,
+    ToolboxComponent,
+])
 
 export interface IDataFrameColumns {
-    column: keyof IFinancialFuturesCOTReport | keyof IDisaggregatedFuturesCOTReport | keyof ILegacyFuturesCOTReport,
-    name: string,
+    column:
+        | keyof IFinancialFuturesCOTReport
+        | keyof IDisaggregatedFuturesCOTReport
+        | keyof ILegacyFuturesCOTReport
+    name: string
 }
 
 type ECOption = echarts.ComposeOption<
-    LineSeriesOption |
-    TitleComponentOption |
-    TooltipComponentOption |
-    DataZoomComponentOption |
-    ToolboxComponentOption |
-    GridComponentOption
->;
+    | LineSeriesOption
+    | TitleComponentOption
+    | TooltipComponentOption
+    | DataZoomComponentOption
+    | ToolboxComponentOption
+    | GridComponentOption
+>
 
-export default function LongShortOIChart(
-    {
-        longCols,
-        shortCols,
-        data
-    }: {
-        data: IAnyCOTReportType[],
-        longCols: IDataFrameColumns[],
-        shortCols: IDataFrameColumns[],
-    }
-)
-    {
+export default function LongShortOIChart({
+    longCols,
+    shortCols,
+    data,
+}: {
+    data: IAnyCOTReportType[]
+    longCols: IDataFrameColumns[]
+    shortCols: IDataFrameColumns[]
+}) {
     const generateOptions = (): ECOption => {
-        const longSeries: LineSeriesOption[] = longCols.map(({ name, column }) => {
-            return {
-                type: 'line',
-                name,
-                encode: {
-                    x: 'timestamp',
-                    y: column as string,
-                },
-                smooth: true,
-                areaStyle: {},
-                stack: 'total_longs',
-                lineStyle: {
-                    width: 0,
-                },
-                showSymbol: false,
-                emphasis: {
-                    focus: 'series',
-                },
-                xAxisIndex: 0,
-                yAxisIndex: 0,
-            };
-        });
-        const shortSeries: LineSeriesOption[] = shortCols.map(({ name, column }) => {
-            return {
-                type: 'line',
-                name,
-                encode: {
-                    x: 'timestamp',
-                    y: column as string,
-                },
-                smooth: true,
-                areaStyle: {},
-                stack: 'total_shorts',
-                lineStyle: {
-                    width: 0,
-                },
-                showSymbol: false,
-                emphasis: {
-                    focus: 'series',
-                },
-                xAxisIndex: 1,
-                yAxisIndex: 1,
-            };
-        });
+        const longSeries: LineSeriesOption[] = longCols.map(
+            ({ name, column }) => {
+                return {
+                    type: 'line',
+                    name,
+                    encode: {
+                        x: 'timestamp',
+                        y: column as string,
+                    },
+                    smooth: true,
+                    areaStyle: {},
+                    stack: 'total_longs',
+                    lineStyle: {
+                        width: 0,
+                    },
+                    showSymbol: false,
+                    emphasis: {
+                        focus: 'series',
+                    },
+                    xAxisIndex: 0,
+                    yAxisIndex: 0,
+                }
+            }
+        )
+        const shortSeries: LineSeriesOption[] = shortCols.map(
+            ({ name, column }) => {
+                return {
+                    type: 'line',
+                    name,
+                    encode: {
+                        x: 'timestamp',
+                        y: column as string,
+                    },
+                    smooth: true,
+                    areaStyle: {},
+                    stack: 'total_shorts',
+                    lineStyle: {
+                        width: 0,
+                    },
+                    showSymbol: false,
+                    emphasis: {
+                        focus: 'series',
+                    },
+                    xAxisIndex: 1,
+                    yAxisIndex: 1,
+                }
+            }
+        )
         return {
-            title: {
-            },
+            title: {},
             tooltip: {
                 trigger: 'axis',
                 show: true,
                 axisPointer: {
-                    type: "cross",
+                    type: 'cross',
                 },
             },
             toolbox: {
@@ -122,7 +160,10 @@ export default function LongShortOIChart(
                 {
                     type: 'slider',
                     filterMode: 'filter',
-                    start: 100. * Math.max(data.length - defaultDataZoomWeeks, 0) / data.length,
+                    start:
+                        (100 *
+                            Math.max(data.length - defaultDataZoomWeeks, 0)) /
+                        data.length,
                     xAxisIndex: [0, 1],
                 },
             ],
@@ -131,9 +172,9 @@ export default function LongShortOIChart(
                     type: 'time',
                     axisLabel: {
                         formatter: (value: any) => {
-                            let d = new Date(value);
-                            return formatDateYYYYMMDD(d);
-                        }
+                            let d = new Date(value)
+                            return formatDateYYYYMMDD(d)
+                        },
                     },
                     gridIndex: 0,
                     // data: xAxisData.map(x => formatDateYYYYMMDD(x)),
@@ -142,9 +183,9 @@ export default function LongShortOIChart(
                     type: 'time',
                     axisLabel: {
                         formatter: (value: any) => {
-                            let d = new Date(value);
-                            return formatDateYYYYMMDD(d);
-                        }
+                            let d = new Date(value)
+                            return formatDateYYYYMMDD(d)
+                        },
                     },
                     gridIndex: 1,
                     // data: xAxisData.map(x => formatDateYYYYMMDD(x)),
@@ -177,7 +218,7 @@ export default function LongShortOIChart(
                 },
             ],
             series: [...longSeries, ...shortSeries],
-        };
+        }
     }
 
     return (
@@ -185,7 +226,7 @@ export default function LongShortOIChart(
             <div className="w-full">
                 <EChartsReactCore
                     echarts={echarts}
-                    theme={"dark"}
+                    theme={'dark'}
                     option={generateOptions()}
                     style={{
                         height: 500,
@@ -197,4 +238,4 @@ export default function LongShortOIChart(
     )
 }
 
-const defaultDataZoomWeeks = 20;
+const defaultDataZoomWeeks = 20

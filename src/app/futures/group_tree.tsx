@@ -1,10 +1,14 @@
-'use client';
+'use client'
 
-import { CommodityContractKind } from "@/lib/CommodityContractKind";
-import { CFTCCommodityGroupType, CFTCReportType } from "@/common_types";
-import { allCapsToTitle, allCapsToSlug, slugToTitle } from "@/lib/cftc_api_utils";
-import SubgroupTree from "./subgroup_tree";
-import Link from "next/link";
+import { CommodityContractKind } from '@/lib/CommodityContractKind'
+import { CFTCCommodityGroupType, CFTCReportType } from '@/common_types'
+import {
+    allCapsToTitle,
+    allCapsToSlug,
+    slugToTitle,
+} from '@/lib/cftc_api_utils'
+import SubgroupTree from './subgroup_tree'
+import Link from 'next/link'
 
 export default function GroupTree({
     commodityGroupNameTitle,
@@ -12,16 +16,16 @@ export default function GroupTree({
     commodityGroupTree,
     depth,
 }: {
-    commodityGroupNameSlug: string,
-    commodityGroupNameTitle: string,
+    commodityGroupNameSlug: string
+    commodityGroupNameTitle: string
     commodityGroupTree: {
         [subgroupName: string]: {
             [commodityName: string]: {
-                [reportType in CFTCReportType]: CommodityContractKind[];
-            };
-        };
-    },
-    depth: number,
+                [reportType in CFTCReportType]: CommodityContractKind[]
+            }
+        }
+    }
+    depth: number
 }) {
     return (
         <div>
@@ -35,18 +39,24 @@ export default function GroupTree({
                 </h3>
             </div>
 
-            {commodityGroupTree && depth > 0 && Object.entries(commodityGroupTree).map(([subgroupName, subgroupTree], idx) => {
-                return (
-                    <SubgroupTree
-                        key={idx}
-                        commoditySubgroupNameTitle={slugToTitle(subgroupName)}
-                        commoditySubgroupNameSlug={subgroupName}
-                        subgroupTree={subgroupTree}
-                        depth={depth - 1}
-                        commodityGroupNameSlug={commodityGroupNameSlug}
-                    />
-                )
-            })}
+            {commodityGroupTree &&
+                depth > 0 &&
+                Object.entries(commodityGroupTree).map(
+                    ([subgroupName, subgroupTree], idx) => {
+                        return (
+                            <SubgroupTree
+                                key={idx}
+                                commoditySubgroupNameTitle={slugToTitle(
+                                    subgroupName
+                                )}
+                                commoditySubgroupNameSlug={subgroupName}
+                                subgroupTree={subgroupTree}
+                                depth={depth - 1}
+                                commodityGroupNameSlug={commodityGroupNameSlug}
+                            />
+                        )
+                    }
+                )}
         </div>
-    );
+    )
 }

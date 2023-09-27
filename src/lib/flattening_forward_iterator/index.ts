@@ -1,2 +1,2 @@
-import FlatteningForwardIterator from "./flattening_forward_iterator";
-export default FlatteningForwardIterator;
+import FlatteningForwardIterator from './flattening_forward_iterator'
+export default FlatteningForwardIterator
